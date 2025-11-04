@@ -38,6 +38,9 @@ def init_db():
         FOREIGN KEY (user_id) REFERENCES users(id),
         FOREIGN KEY (anime_id) REFERENCES anime(id)
     )''')
+    
+    cursor.execute("INSERT INTO anime (title, genre, category, description, episodes, image_path) VALUES ('Bleach: Thousand-Year Blood War', 'Action, Supernatural', 'Ongoing', 'Bleach final arc', 2, '')")
+    cursor.execute("INSERT INTO anime (title, genre, category, description, episodes, image_path) VALUES ('Naruto', 'Action, Adventure', 'Completed', 'Ninja story', 500, '')")
 
     conn.commit()
     conn.close()
