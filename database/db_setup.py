@@ -1,7 +1,7 @@
 import sqlite3
 
 def init_db():
-    conn = sqlite3.connect("app/database/otakuzone.db")
+    conn = sqlite3.connect("database/otakuzone.db")
     cursor = conn.cursor()
 
     # Create Users table

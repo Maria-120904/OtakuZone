@@ -1,7 +1,7 @@
 import flet as ft
 import sqlite3
 
-DB_PATH = "app/database/otakuzone.db"
+DB_PATH = "database/otakuzone.db"
 
 def get_anime_by_id(anime_id):
     conn = sqlite3.connect(DB_PATH)

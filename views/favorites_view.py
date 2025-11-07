@@ -1,7 +1,7 @@
 import flet as ft
 import sqlite3
 
-DB_PATH = "app/database/otakuzone.db"
+DB_PATH = "database/otakuzone.db"
 
 def get_favorite_anime(user_id):
     conn = sqlite3.connect(DB_PATH)
@@ -21,10 +21,10 @@ def main(page: ft.Page, user_id=1):
     page.scroll = "auto"
 
     def back_to_home(e):
-        print("Return to Home Page (placeholder)")
+        page.go("/home")
 
     def show_detail(anime):
-        print(f"Clicked favorite: {anime[1]} (navigate to detail later)")
+        page.go(f"/detail/{anime[0]}")
 
     # Header
     header = ft.Row(
@@ -67,6 +67,3 @@ def main(page: ft.Page, user_id=1):
         anime_items.controls.append(card)
 
     page.add(header, ft.Divider(), anime_items)
-
-if __name__ == "__main__":
-    ft.app(target=main)

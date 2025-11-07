@@ -2,19 +2,18 @@ import flet as ft
 import sqlite3
 
 def get_all_anime():
-    conn = sqlite3.connect("app/database/otakuzone.db")
+    conn = sqlite3.connect("database/otakuzone.db")
     cursor = conn.cursor()
     cursor.execute("SELECT id, title, genre, category, image_path FROM anime")
     anime_list = cursor.fetchall()
     conn.close()
     return anime_list
 
-def main(page: ft.Page):
+def main(page: ft.Page, user_id=None):
     page.title = "OtakuZone - Home"
     page.theme_mode = "light"
     page.scroll = "auto"
 
-    # Header Components
     def toggle_nav(e):
         page.drawer.open = not page.drawer.open
         page.update()
@@ -51,11 +50,16 @@ def main(page: ft.Page):
         page.update()
 
     def show_anime_detail(anime):
-        print(f"Clicked Anime: {anime[1]} (You’ll design this page later)")
+        page.go(f"/detail/{anime[0]}")
+
+    def navigate_to(route):
+        def handler(e):
+            page.go(route)
+        return handler
 
     # Header
     search_input = ft.TextField(hint_text="Search anime...", width=200, on_submit=search_anime)
-    profile_icon = ft.Icon(name=ft.Icons.ACCOUNT_CIRCLE, size=30)
+    profile_icon = ft.IconButton(icon=ft.Icons.ACCOUNT_CIRCLE, tooltip="Profile")
 
     header = ft.Row(
         [
@@ -71,9 +75,19 @@ def main(page: ft.Page):
     page.drawer = ft.NavigationDrawer(
         controls=[
             ft.Container(ft.Text("Menu", size=18, weight="bold"), padding=10),
-            ft.NavigationDrawerDestination(icon=ft.Icons.HOME, label="Home"),
-            ft.NavigationDrawerDestination(icon=ft.Icons.EXPLORE, label="Explore"),
-            ft.NavigationDrawerDestination(icon=ft.Icons.FAVORITE, label="My Favorites")
+            ft.Container(
+                ft.TextButton("🏠 Home", on_click=navigate_to("/home")),
+                padding=5
+            ),
+            ft.Container(
+                ft.TextButton("❤️ My Favorites", on_click=navigate_to("/favorites")),
+                padding=5
+            ),
+            ft.Divider(),
+            ft.Container(
+                ft.TextButton("🚪 Logout", on_click=navigate_to("/login")),
+                padding=5
+            ),
         ]
     )
 
@@ -82,6 +96,3 @@ def main(page: ft.Page):
     update_anime_list()
 
     page.add(header, ft.Divider(), anime_items)
-
-if __name__ == "__main__":
-    ft.app(target=main)

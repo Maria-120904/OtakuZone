@@ -1,7 +1,7 @@
 import flet as ft
 import sqlite3
 
-DB_PATH = "app/database/otakuzone.db"
+DB_PATH = "database/otakuzone.db"
 
 # --- DATABASE HELPERS ---
 def get_all_users():
