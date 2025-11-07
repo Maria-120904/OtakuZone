@@ -45,13 +45,16 @@ def main(page: ft.Page, anime_id=1, user_id=1):
         nonlocal fav_state
         toggle_favorite(user_id, anime_id)
         fav_state = not fav_state
-        favorite_btn.icon_color = "red" if fav_state else "black"
+        favorite_btn.controls[0].icon_color = "red" if fav_state else "black"
         page.update()
+
+    def go_back(e):
+        page.go("/home")
 
     # Header
     header = ft.Row(
         [
-            ft.IconButton(icon=ft.icons.ARROW_BACK, on_click=lambda e: page.window_close()),  # placeholder back
+            ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=go_back),
             ft.Text(anime[1], size=20, weight="bold"),
         ],
         alignment="start"
@@ -67,17 +70,17 @@ def main(page: ft.Page, anime_id=1, user_id=1):
 
     # Action icons
     favorite_btn = ft.Column(
-        [ft.IconButton(icon=ft.icons.FAVORITE, icon_color="red" if fav_state else "black", on_click=handle_favorite),
+        [ft.IconButton(icon=ft.Icons.FAVORITE, icon_color="red" if fav_state else "black", on_click=handle_favorite),
          ft.Text("Favorite", size=12)],
         horizontal_alignment="center"
     )
     share_btn = ft.Column(
-        [ft.IconButton(icon=ft.icons.SHARE, icon_color="black"),
+        [ft.IconButton(icon=ft.Icons.SHARE, icon_color="black"),
          ft.Text("Share", size=12)],
         horizontal_alignment="center"
     )
     download_btn = ft.Column(
-        [ft.IconButton(icon=ft.icons.DOWNLOAD, icon_color="black"),
+        [ft.IconButton(icon=ft.Icons.DOWNLOAD, icon_color="black"),
          ft.Text("Download", size=12)],
         horizontal_alignment="center"
     )
@@ -89,8 +92,8 @@ def main(page: ft.Page, anime_id=1, user_id=1):
             ft.Text(f"Category: {anime[3]}", size=14, color="grey"),
             ft.Text(anime[4], size=14, selectable=True),
             ft.Divider(),
-            ft.Text(f"Episodes  (Total {anime[5]})", size=18, weight="bold"),
-            ft.Row([ft.Text(str(i+1), size=14) for i in range(anime[5])], spacing=10),
+            ft.Text(f"Episodes (Total {anime[5]})", size=18, weight="bold"),
+            ft.Row([ft.Text(str(i+1), size=14) for i in range(anime[5])], spacing=10, wrap=True),
         ],
         spacing=5
     )

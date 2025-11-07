@@ -33,7 +33,12 @@ def main(page: ft.Page, user_id=None):
             anime_card = ft.Container(
                 content=ft.Column(
                     [
-                        ft.Image(src=anime[4] if anime[4] else "https://via.placeholder.com/200x250", width=200, height=250, fit="cover"),
+                        ft.Image(
+                            src=anime[4] if anime[4] else "https://via.placeholder.com/200x250",
+                            width=200,
+                            height=250,
+                            fit="cover"
+                        ),
                         ft.Text(anime[1], size=16, weight="bold"),
                         ft.Text(anime[2], size=12, color="grey"),
                     ],
@@ -47,6 +52,7 @@ def main(page: ft.Page, user_id=None):
                 on_click=lambda e, a=anime: show_anime_detail(a)
             )
             anime_items.controls.append(anime_card)
+        
         page.update()
 
     def show_anime_detail(anime):
@@ -96,3 +102,6 @@ def main(page: ft.Page, user_id=None):
     update_anime_list()
 
     page.add(header, ft.Divider(), anime_items)
+
+if __name__ == "__main__":
+    ft.app(target=main)

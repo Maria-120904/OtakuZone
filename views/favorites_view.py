@@ -67,3 +67,6 @@ def main(page: ft.Page, user_id=1):
         anime_items.controls.append(card)
 
     page.add(header, ft.Divider(), anime_items)
+
+if __name__ == "__main__":
+    ft.app(target=main)

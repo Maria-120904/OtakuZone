@@ -86,7 +86,7 @@ def main(page: ft.Page, user_id=1):
 
     header = ft.Row(
         [
-            ft.IconButton(icon=ft.icons.ARROW_BACK, on_click=go_back),
+            ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=go_back),
             ft.Text("My Profile", size=22, weight="bold"),
         ],
         alignment="start",

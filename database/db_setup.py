@@ -1,50 +1,89 @@
 import sqlite3
+import bcrypt
+import os
 
-def init_db():
-    conn = sqlite3.connect("database/otakuzone.db")
-    cursor = conn.cursor()
+DB_PATH = "database/otakuzone.db"
 
-    # Create Users table
-    cursor.execute('''CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        username TEXT UNIQUE,
-        email TEXT UNIQUE,
-        password TEXT,
-        birthdate TEXT,
-        age INTEGER,
-        address TEXT,
-        gender TEXT,
-        bio TEXT,
-        role TEXT DEFAULT 'user'
-    )''')
+# Create folder if not existing
+os.makedirs("database", exist_ok=True)
 
-    # Create Anime table
-    cursor.execute('''CREATE TABLE IF NOT EXISTS anime (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT,
-        genre TEXT,
-        category TEXT,
-        description TEXT,
-        episodes INTEGER,
-        image_path TEXT
-    )''')
+conn = sqlite3.connect(DB_PATH)
+cursor = conn.cursor()
 
-    # Create Favorites table
-    cursor.execute('''CREATE TABLE IF NOT EXISTS favorites (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        anime_id INTEGER,
-        FOREIGN KEY (user_id) REFERENCES users(id),
-        FOREIGN KEY (anime_id) REFERENCES anime(id)
-    )''')
-    
-    cursor.execute("INSERT INTO anime (title, genre, category, description, episodes, image_path) VALUES ('Bleach: Thousand-Year Blood War', 'Action, Supernatural', 'Ongoing', 'Bleach final arc', 2, '')")
-    cursor.execute("INSERT INTO anime (title, genre, category, description, episodes, image_path) VALUES ('Naruto', 'Action, Adventure', 'Completed', 'Ninja story', 500, '')")
+# Enable foreign keys
+conn.execute("PRAGMA foreign_keys = ON")
 
-    conn.commit()
-    conn.close()
-    print("✅ Database initialized successfully.")
+# CREATE TABLES
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    username TEXT,
+    email TEXT UNIQUE,
+    password BLOB,
+    birthdate TEXT,
+    age INTEGER,
+    address TEXT,
+    gender TEXT,
+    bio TEXT,
+    role TEXT DEFAULT 'user'
+);
+""")
 
-if __name__ == "__main__":
-    init_db()
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS anime (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    genre TEXT,
+    category TEXT,
+    description TEXT,
+    episodes INTEGER,
+    image_path TEXT
+);
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS favorites (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    anime_id INTEGER,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE
+);
+""")
+
+# INSERT SAMPLE USERS
+def insert_user(name, username, email, password, role="user"):
+    hashed_pw = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    cursor.execute("""
+        INSERT OR IGNORE INTO users (name, username, email, password, role)
+        VALUES (?, ?, ?, ?, ?)
+    """, (name, username, email, hashed_pw, role))
+
+# Admin account
+insert_user("Admin", "admin", "admin@otakuzone.com", "admin123", "admin")
+
+# Regular user account
+insert_user("Test User", "testuser", "user@otakuzone.com", "user123", "user")
+
+
+# INSERT SAMPLE ANIME
+anime_samples = [
+    ("Bleach: Thousand-Year Blood War", "Action, Supernatural", "Ongoing", "Ichigo Kurosaki faces Quincy invasion.", 13, ""),
+    ("Naruto Shippuden", "Action, Adventure", "Completed", "Naruto’s journey to become Hokage.", 500, ""),
+    ("Attack on Titan", "Action, Drama", "Completed", "Eren Yeager fights for freedom against Titans.", 75, ""),
+    ("Demon Slayer", "Action, Fantasy", "Ongoing", "Tanjiro seeks revenge for his family.", 40, ""),
+    ("One Piece", "Adventure, Comedy", "Ongoing", "Luffy and his crew search for the One Piece.", 1000, ""),
+    ("Jujutsu Kaisen", "Action, Supernatural", "Ongoing", "Yuji Itadori becomes host to Sukuna.", 48, ""),
+    ("Tokyo Ghoul", "Horror, Thriller", "Completed", "Kaneki becomes half-ghoul after an encounter.", 48, "")
+]
+
+cursor.executemany("""
+INSERT OR IGNORE INTO anime (title, genre, category, description, episodes, image_path)
+VALUES (?, ?, ?, ?, ?, ?)
+""", anime_samples)
+
+conn.commit()
+conn.close()
+
+print("✅ Database setup complete — tables created and sample data added!")
