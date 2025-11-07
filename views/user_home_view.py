@@ -59,7 +59,7 @@ def main(page: ft.Page, user_id=None):
 
     # Header
     search_input = ft.TextField(hint_text="Search anime...", width=200, on_submit=search_anime)
-    profile_icon = ft.IconButton(icon=ft.Icons.ACCOUNT_CIRCLE, tooltip="Profile")
+    profile_icon = ft.IconButton(icon=ft.Icons.ACCOUNT_CIRCLE, on_click=lambda e: page.go("/profile"))
 
     header = ft.Row(
         [

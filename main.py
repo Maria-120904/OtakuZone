@@ -6,6 +6,7 @@ from views.favorites_view import main as favorites_view
 from views.anime_detail_view import main as anime_detail_view
 from views.admin_anime_mgmt import main as admin_anime
 from views.admin_user_mgmt import main as admin_user
+from views.profile_view import main as profile_view
 
 
 # ROUTER CONTROLLER
@@ -50,6 +51,8 @@ def main(page: ft.Page):
                 admin_user(page)
             else:
                 page.go("/login")
+        elif route == "/profile":
+            profile_view(page)
         else:
             page.add(ft.Text("404 - Page Not Found", color="red", size=20))
 
