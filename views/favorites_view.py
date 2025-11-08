@@ -1,5 +1,6 @@
 import flet as ft
 import sqlite3
+from services.session_manager import SessionManager
 
 DB_PATH = "database/otakuzone.db"
 
@@ -16,9 +17,17 @@ def get_favorite_anime(user_id):
     conn.close()
     return data
 
-def main(page: ft.Page, user_id=1):
+def main(page: ft.Page):
     page.title = "OtakuZone - My Favorites"
     page.scroll = "auto"
+
+    # Get user_id from session
+    session = SessionManager(page)
+    if not session.is_logged_in():
+        page.go("/login")
+        return
+    
+    user_id = session.get_user_id()
 
     def back_to_home(e):
         page.go("/home")

@@ -1,9 +1,12 @@
 import flet as ft
 import sqlite3
 from theme import set_theme, primary_button, input_field
+from services.session_manager import SessionManager
 
 DB_PATH = "database/otakuzone.db"
 
+
+# Get user data
 def get_user(user_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -15,6 +18,8 @@ def get_user(user_id):
     conn.close()
     return data
 
+
+# Update user data
 def update_user(user_id, name, username, birthdate, age, address, gender, bio):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -26,17 +31,29 @@ def update_user(user_id, name, username, birthdate, age, address, gender, bio):
     conn.commit()
     conn.close()
 
-def main(page: ft.Page, user_id=1):
+
+# Main profile view
+def main(page: ft.Page):
     set_theme(page)
     page.title = "OtakuZone - Profile"
     page.scroll = "auto"
 
-    user = get_user(user_id)
-    if not user:
-        page.add(ft.Text("User not found!", color="red"))
+    # Initialize session
+    session = SessionManager(page)
+
+    # Redirect if not logged in
+    if not session.is_logged_in():
+        page.go("/")
         return
 
-    # Pre-fill user data
+    user_id = session.get_user_id()
+    user = get_user(user_id)
+
+    if not user:
+        page.add(ft.Text("⚠ User not found!", color="red"))
+        return
+
+    # Pre-fill fields
     name_field = input_field("Name")
     username_field = input_field("Username")
     birthdate_field = input_field("Birthdate (YYYY-MM-DD)")
@@ -46,12 +63,12 @@ def main(page: ft.Page, user_id=1):
         label="Gender",
         options=[ft.dropdown.Option("Male"), ft.dropdown.Option("Female")],
         value=user[5] if user[5] else "Male",
-        width=300
+        width=300,
     )
     bio_field = input_field("Bio")
     bio_field.hint_text = "Introduce yourself to the OtakuZone Community."
 
-    # Fill with existing data
+    # Fill values
     name_field.value = user[0] or ""
     username_field.value = user[1] or ""
     birthdate_field.value = user[2] or ""
@@ -63,18 +80,18 @@ def main(page: ft.Page, user_id=1):
     def handle_save(e):
         update_user(
             user_id,
-            name_field.value,
-            username_field.value,
-            birthdate_field.value,
+            name_field.value.strip(),
+            username_field.value.strip(),
+            birthdate_field.value.strip(),
             int(age_field.value) if age_field.value.isdigit() else 0,
-            address_field.value,
+            address_field.value.strip(),
             gender_dropdown.value,
-            bio_field.value
+            bio_field.value.strip(),
         )
 
         dialog = ft.AlertDialog(
-            title=ft.Text("✅ User Details Saved Successfully!"),
-            on_dismiss=lambda e: page.go("/home")
+            title=ft.Text("User details saved successfully!"),
+            on_dismiss=lambda e: page.go("/home"),
         )
         page.dialog = dialog
         dialog.open = True
@@ -84,18 +101,20 @@ def main(page: ft.Page, user_id=1):
     def go_back(e):
         page.go("/home")
 
+    # Header layout
     header = ft.Row(
         [
             ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=go_back),
-            ft.Text("My Profile", size=22, weight="bold"),
+            ft.Text("My Profile", size=22, weight="bold", color="white"),
         ],
         alignment="start",
     )
 
+    # Main layout
     layout = ft.Column(
         [
             header,
-            ft.Divider(),
+            ft.Divider(color="#E50914"),
             name_field,
             username_field,
             birthdate_field,
@@ -106,7 +125,7 @@ def main(page: ft.Page, user_id=1):
             ft.Container(primary_button("Save", handle_save), padding=10),
         ],
         horizontal_alignment="center",
-        scroll="auto"
+        scroll="auto",
     )
 
     page.add(layout)

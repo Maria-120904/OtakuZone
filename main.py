@@ -7,22 +7,20 @@ from views.anime_detail_view import main as anime_detail_view
 from views.admin_anime_mgmt import main as admin_anime
 from views.admin_user_mgmt import main as admin_user
 from views.profile_view import main as profile_view
-
+from services.session_manager import SessionManager
 
 # ROUTER CONTROLLER
 def main(page: ft.Page):
     page.title = "OtakuZone"
     page.theme_mode = "light"
-
-    # Initialize session storage
-    if not hasattr(page, 'session_data'):
-        page.session_data = {"user_id": None, "role": None, "username": None}
+    
+    session = SessionManager(page)
 
     def navigate(route):
         page.controls.clear()
         
-        user_id = page.session_data.get("user_id")
-        role = page.session_data.get("role")
+        user_id = session.get_user_id()
+        role = session.get_role()
 
         if route == "/" or route == "/login":
             login_view(page)
@@ -30,15 +28,15 @@ def main(page: ft.Page):
             signup_view(page)
         elif route == "/home":
             if user_id:
-                user_home(page, user_id=user_id)
+                user_home(page)
             else:
                 page.go("/login")
         elif route.startswith("/detail/"):
             anime_id = int(route.split("/")[-1])
-            anime_detail_view(page, anime_id=anime_id, user_id=user_id or 1)
+            anime_detail_view(page, anime_id=anime_id)
         elif route == "/favorites":
             if user_id:
-                favorites_view(page, user_id=user_id)
+                favorites_view(page)
             else:
                 page.go("/login")
         elif route == "/admin/anime":
@@ -52,7 +50,10 @@ def main(page: ft.Page):
             else:
                 page.go("/login")
         elif route == "/profile":
-            profile_view(page)
+            if user_id:
+                profile_view(page)
+            else:
+                page.go("/login")
         else:
             page.add(ft.Text("404 - Page Not Found", color="red", size=20))
 
