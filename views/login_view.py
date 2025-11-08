@@ -3,12 +3,21 @@ import sqlite3
 import bcrypt
 import re
 from services.session_manager import SessionManager
+from services.login_security import (
+    record_login_attempt,
+    is_account_locked,
+    clear_login_attempts,
+    get_failed_attempts,
+    get_lockout_time_remaining
+)
 from theme import set_theme, primary_button, input_field
+import asyncio
 
+DB_PATH = "database/otakuzone.db"
 
 # Get user by email
 def get_user_by_email(email):
-    conn = sqlite3.connect("database/otakuzone.db")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute(
         "SELECT id, name, username, email, password, role FROM users WHERE email = ?",
@@ -30,6 +39,67 @@ def main(page: ft.Page):
     email_input = input_field("Email")
     password_input = input_field("Password", password=True)
     message_text = ft.Text(value="", color="red", size=14)
+    
+    # Create buttons that can be disabled
+    signin_button = ft.ElevatedButton(
+        text="Sign In",
+        width=300,
+        height=45,
+        bgcolor="#E50914",
+        color="white",
+        style=ft.ButtonStyle(
+            shape=ft.RoundedRectangleBorder(radius=12),
+            overlay_color="#ff4040",
+        ),
+        on_click=None  # Will be set later
+    )
+    
+    signup_link = ft.TextButton(
+        "Don't have an account? Sign up",
+        style=ft.ButtonStyle(color="#E50914"),
+        on_click=None  # Will be set later
+    )
+
+    # Timer display
+    timer_text = ft.Text(value="", color="red", size=16, weight="bold")
+    
+    # Start countdown timer and disable buttons using async
+    def start_lockout_timer(email, total_seconds):
+        signin_button.disabled = True
+        signup_link.disabled = True
+        email_input.disabled = True
+        password_input.disabled = True
+        page.update()
+        
+        # Use async function for countdown
+        async def countdown():
+            while True:
+                remaining = get_lockout_time_remaining(email, lockout_minutes=2)
+                
+                if remaining > 0:
+                    minutes = remaining // 60
+                    seconds = remaining % 60
+                    timer_text.value = f"Locked for: {minutes}m {seconds}s"
+                    message_text.value = "Account locked. Please wait..."
+                    message_text.color = "red"
+                    page.update()
+                    
+                    # Wait 1 second before next update
+                    await asyncio.sleep(1)
+                else:
+                    # Lockout expired - re-enable buttons
+                    signin_button.disabled = False
+                    signup_link.disabled = False
+                    email_input.disabled = False
+                    password_input.disabled = False
+                    timer_text.value = ""
+                    message_text.value = "You can try logging in again."
+                    message_text.color = "green"
+                    page.update()
+                    break
+        
+        # Start async countdown
+        page.run_task(countdown)
 
     # Handle login logic
     def handle_login(e):
@@ -39,20 +109,36 @@ def main(page: ft.Page):
         # Validation
         if not email or not password:
             message_text.value = "⚠ Please fill in all fields."
+            message_text.color = "red"
             page.update()
             return
 
         if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
             message_text.value = "⚠ Invalid email format."
+            message_text.color = "red"
             page.update()
             return
 
+        # Check if account is locked
+        if is_account_locked(email, max_attempts=5):
+            remaining_seconds = get_lockout_time_remaining(email, lockout_minutes=2)
+            if remaining_seconds > 0:
+                start_lockout_timer(email, remaining_seconds)
+                return
+
+        # Get current failed attempts count
+        current_failed = get_failed_attempts(email, minutes=2)
+        
         user = get_user_by_email(email)
         if user:
             stored_hash = user[4]
 
             # Check hashed password
             if bcrypt.checkpw(password.encode("utf-8"), stored_hash):
+                # Clear failed attempts on successful login
+                clear_login_attempts(email)
+                record_login_attempt(email, success=True)
+                
                 session.login(user[0], user[5], user[3])  # store session data
 
                 # Redirect based on role
@@ -61,14 +147,53 @@ def main(page: ft.Page):
                 else:
                     page.go("/home")
             else:
-                message_text.value = "❌ Incorrect password."
+                # Record failed attempt
+                record_login_attempt(email, success=False)
+                new_failed_count = get_failed_attempts(email, minutes=2)
+                remaining = 5 - new_failed_count
+                
+                if remaining > 0:
+                    message_text.value = f"Incorrect password. {remaining} attempt(s) remaining."
+                    message_text.color = "orange"
+                else:
+                    message_text.value = "Account locked for 2 minutes!"
+                    message_text.color = "red"
+                    # Start lockout timer
+                    start_lockout_timer(email, 120)  # 2 minutes = 120 seconds
         else:
-            message_text.value = "❌ User not found."
+            # Record failed attempt even for non-existent users (prevent user enumeration)
+            record_login_attempt(email, success=False)
+            new_failed_count = get_failed_attempts(email, minutes=2)
+            remaining = 5 - new_failed_count
+            
+            if remaining > 0:
+                message_text.value = f"Invalid credentials. {remaining} attempt(s) remaining."
+                message_text.color = "orange"
+            else:
+                message_text.value = "Account locked for 2 minutes!"
+                message_text.color = "red"
+                # Start lockout timer
+                start_lockout_timer(email, 120)
 
         page.update()
-        
+    
+    # Assign click handlers
+    signin_button.on_click = handle_login
+    
     def go_to_signup(e):
         page.go("/signup")
+    
+    signup_link.on_click = go_to_signup
+
+    # Check lockout when email loses focus (user enters email)
+    def on_email_blur(e):
+        email = email_input.value.strip()
+        if email and is_account_locked(email, max_attempts=5):
+            remaining = get_lockout_time_remaining(email, lockout_minutes=2)
+            if remaining > 0:
+                start_lockout_timer(email, remaining)
+    
+    email_input.on_blur = on_email_blur
 
     layout = ft.Column(
         [
@@ -85,7 +210,8 @@ def main(page: ft.Page):
             ft.Divider(height=20, color="transparent"),
             email_input,
             password_input,
-            primary_button("Sign In", on_click=handle_login),
+            signin_button,  # Use the new button
+            timer_text,      # Countdown display
             ft.Container(height=10),
             ft.Text("or", color="#b3b3b3"),
             ft.Container(height=5),
@@ -97,11 +223,7 @@ def main(page: ft.Page):
                 alignment=ft.MainAxisAlignment.CENTER,
             ),
             ft.Container(height=15),
-            ft.TextButton(
-                "Don't have an account? Sign up",
-                on_click=go_to_signup,
-                style=ft.ButtonStyle(color="#E50914"),
-            ),
+            signup_link,  # Use the new link
             ft.Container(height=10),
             message_text,
         ],

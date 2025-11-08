@@ -52,6 +52,16 @@ CREATE TABLE IF NOT EXISTS favorites (
 );
 """)
 
+# ✅ NEW: Login attempts table for security
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    success INTEGER DEFAULT 0
+);
+""")
+
 # INSERT SAMPLE USERS
 def insert_user(name, username, email, password, role="user"):
     hashed_pw = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
@@ -70,7 +80,7 @@ insert_user("Test User", "testuser", "user@otakuzone.com", "user123", "user")
 # INSERT SAMPLE ANIME
 anime_samples = [
     ("Bleach: Thousand-Year Blood War", "Action, Supernatural", "Ongoing", "Ichigo Kurosaki faces Quincy invasion.", 13, ""),
-    ("Naruto Shippuden", "Action, Adventure", "Completed", "Naruto’s journey to become Hokage.", 500, ""),
+    ("Naruto Shippuden", "Action, Adventure", "Completed", "Naruto's journey to become Hokage.", 500, ""),
     ("Attack on Titan", "Action, Drama", "Completed", "Eren Yeager fights for freedom against Titans.", 75, ""),
     ("Demon Slayer", "Action, Fantasy", "Ongoing", "Tanjiro seeks revenge for his family.", 40, ""),
     ("One Piece", "Adventure, Comedy", "Ongoing", "Luffy and his crew search for the One Piece.", 1000, ""),
@@ -87,3 +97,4 @@ conn.commit()
 conn.close()
 
 print("✅ Database setup complete — tables created and sample data added!")
+print("✅ Security table (login_attempts) initialized!")
