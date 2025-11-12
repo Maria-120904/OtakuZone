@@ -2,7 +2,10 @@ import flet as ft
 import sqlite3
 import bcrypt
 import re
+import threading
 from theme import set_theme, primary_button, input_field
+from services.google_auth import get_google_user_info
+from services.google_user_service import get_or_create_google_user
 
 DB_PATH = "database/otakuzone.db"
 
@@ -18,6 +21,7 @@ def create_user_table():
             username TEXT UNIQUE,
             email TEXT UNIQUE,
             password BLOB,
+            google_id TEXT UNIQUE,
             birthdate TEXT,
             age INTEGER,
             address TEXT,
@@ -64,6 +68,78 @@ def main(page: ft.Page):
     email_input = input_field("Email")
     password_input = input_field("Password", password=True)
     message_text = ft.Text(value="", color="red", size=14)
+
+    # ✅ Google Sign Up Button
+    google_button = ft.ElevatedButton(
+        content=ft.Row(
+            [
+                ft.Image(
+                    src="https://www.google.com/favicon.ico",
+                    width=20,
+                    height=20,
+                ),
+                ft.Text("Continue with Google", size=14, color="white"),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=10,
+        ),
+        width=300,
+        height=45,
+        bgcolor="#4285F4",
+        color="white",
+        style=ft.ButtonStyle(
+            shape=ft.RoundedRectangleBorder(radius=12),
+        ),
+        on_click=lambda e: handle_google_signup(),
+    )
+
+    # ✅ Google Sign Up Handler (Real Implementation)
+    def handle_google_signup():
+        message_text.value = "🔄 Opening Google Sign-In..."
+        message_text.color = "blue"
+        google_button.disabled = True
+        page.update()
+        
+        def google_auth_thread():
+            user_info, error = get_google_user_info()
+            
+            if error:
+                message_text.value = f"❌ Error: {error}"
+                message_text.color = "red"
+                google_button.disabled = False
+                page.update()
+                return
+            
+            if user_info:
+                # Create or get user
+                user_id, role, is_new = get_or_create_google_user(
+                    user_info['email'],
+                    user_info['name'],
+                    user_info['google_id']
+                )
+                
+                if user_id is None:
+                    message_text.value = "❌ Email already registered with password login. Please use regular login."
+                    message_text.color = "red"
+                    google_button.disabled = False
+                    page.update()
+                    return
+                
+                if is_new:
+                    message_text.value = f"✅ Account created for {user_info['email']}! Redirecting to login..."
+                    message_text.color = "green"
+                    page.update()
+                    import time
+                    time.sleep(2)
+                    page.go("/login")
+                else:
+                    message_text.value = "ℹ️ Account already exists. Please use login page."
+                    message_text.color = "orange"
+                    google_button.disabled = False
+                    page.update()
+        
+        # Run in separate thread to avoid blocking UI
+        threading.Thread(target=google_auth_thread, daemon=True).start()
 
     # --- Signup handler ---
     def handle_signup(e):
@@ -113,7 +189,11 @@ def main(page: ft.Page):
     # --- Layout ---
     layout = ft.Column(
         [
-            ft.Container(ft.Text("Create New Account", size=26, weight="bold", color="white"), padding=10),
+            ft.Container(
+                ft.Text("Create New Account", size=26, weight="bold", color="white"),
+                alignment=ft.alignment.center,
+                padding=10
+            ),
             ft.Text("Already registered? Log in here.", size=14, color="#b3b3b3"),
             ft.Divider(height=20, color="transparent"),
             name_input,
@@ -121,14 +201,10 @@ def main(page: ft.Page):
             email_input,
             password_input,
             primary_button("Sign Up", on_click=handle_signup),
-            ft.Container(height=15),
-            ft.Row(
-                [
-                    ft.Icon(name=ft.Icons.G_TRANSLATE, color="white"),
-                    ft.Text("Continue with Google", size=14, color="white"),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-            ),
+            ft.Container(height=10),
+            ft.Text("or", color="#b3b3b3"),
+            ft.Container(height=5),
+            google_button,
             ft.Container(height=15),
             ft.TextButton(
                 "Already have an account? Login",

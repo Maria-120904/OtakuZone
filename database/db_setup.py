@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT,
     email TEXT UNIQUE,
     password BLOB,
+    google_id TEXT UNIQUE,
     birthdate TEXT,
     age INTEGER,
     address TEXT,
@@ -52,12 +53,12 @@ CREATE TABLE IF NOT EXISTS favorites (
 );
 """)
 
-# ✅ NEW: Login attempts table for security
+# ✅ Login attempts table for security
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS login_attempts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL,
-    attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    attempt_time TEXT NOT NULL,
     success INTEGER DEFAULT 0
 );
 """)
@@ -75,7 +76,6 @@ insert_user("Admin", "admin", "admin@otakuzone.com", "admin123", "admin")
 
 # Regular user account
 insert_user("Test User", "testuser", "user@otakuzone.com", "user123", "user")
-
 
 # INSERT SAMPLE ANIME
 anime_samples = [
@@ -98,3 +98,4 @@ conn.close()
 
 print("✅ Database setup complete — tables created and sample data added!")
 print("✅ Security table (login_attempts) initialized!")
+print("✅ Google ID column added to users table!")

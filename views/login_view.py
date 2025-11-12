@@ -2,6 +2,8 @@ import flet as ft
 import sqlite3
 import bcrypt
 import re
+import threading
+import asyncio
 from services.session_manager import SessionManager
 from services.login_security import (
     record_login_attempt,
@@ -10,8 +12,9 @@ from services.login_security import (
     get_failed_attempts,
     get_lockout_time_remaining
 )
+from services.google_auth import get_google_user_info
+from services.google_user_service import get_or_create_google_user
 from theme import set_theme, primary_button, input_field
-import asyncio
 
 DB_PATH = "database/otakuzone.db"
 
@@ -54,6 +57,30 @@ def main(page: ft.Page):
         on_click=None  # Will be set later
     )
     
+    # ✅ Google Sign In Button
+    google_button = ft.ElevatedButton(
+        content=ft.Row(
+            [
+                ft.Image(
+                    src="https://www.google.com/favicon.ico",
+                    width=20,
+                    height=20,
+                ),
+                ft.Text("Continue with Google", size=14, color="white"),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=10,
+        ),
+        width=300,
+        height=45,
+        bgcolor="#4285F4",
+        color="white",
+        style=ft.ButtonStyle(
+            shape=ft.RoundedRectangleBorder(radius=12),
+        ),
+        on_click=None  # Will be set later
+    )
+    
     signup_link = ft.TextButton(
         "Don't have an account? Sign up",
         style=ft.ButtonStyle(color="#E50914"),
@@ -63,9 +90,62 @@ def main(page: ft.Page):
     # Timer display
     timer_text = ft.Text(value="", color="red", size=16, weight="bold")
     
+    # ✅ Google Sign In Handler (Real Implementation)
+    def handle_google_signin():
+        message_text.value = "🔄 Opening Google Sign-In..."
+        message_text.color = "blue"
+        google_button.disabled = True
+        signin_button.disabled = True
+        page.update()
+        
+        def google_auth_thread():
+            user_info, error = get_google_user_info()
+            
+            if error:
+                message_text.value = f"❌ Error: {error}"
+                message_text.color = "red"
+                google_button.disabled = False
+                signin_button.disabled = False
+                page.update()
+                return
+            
+            if user_info:
+                # Get or create user
+                user_id, role, is_new = get_or_create_google_user(
+                    user_info['email'],
+                    user_info['name'],
+                    user_info['google_id']
+                )
+                
+                if user_id is None:
+                    message_text.value = "❌ Email registered with password. Please use email/password login."
+                    message_text.color = "red"
+                    google_button.disabled = False
+                    signin_button.disabled = False
+                    page.update()
+                    return
+                
+                # Login successful
+                session.login(user_id, role, user_info['email'])
+                message_text.value = f"✅ Welcome {user_info['name']}!"
+                message_text.color = "green"
+                page.update()
+                
+                # Redirect based on role
+                import time
+                time.sleep(1)
+                if role == "admin":
+                    page.go("/admin/anime")
+                else:
+                    page.go("/home")
+        
+        # Run in separate thread to avoid blocking UI
+        threading.Thread(target=google_auth_thread, daemon=True).start()
+    
     # Start countdown timer and disable buttons using async
     def start_lockout_timer(email, total_seconds):
         signin_button.disabled = True
+        google_button.disabled = True  # ✅ Disable Google button too
         signup_link.disabled = True
         email_input.disabled = True
         password_input.disabled = True
@@ -79,8 +159,8 @@ def main(page: ft.Page):
                 if remaining > 0:
                     minutes = remaining // 60
                     seconds = remaining % 60
-                    timer_text.value = f"Locked for: {minutes}m {seconds}s"
-                    message_text.value = "Account locked. Please wait..."
+                    timer_text.value = f"⏱️ Locked for: {minutes}m {seconds}s"
+                    message_text.value = "🔒 Account locked. Please wait..."
                     message_text.color = "red"
                     page.update()
                     
@@ -89,11 +169,12 @@ def main(page: ft.Page):
                 else:
                     # Lockout expired - re-enable buttons
                     signin_button.disabled = False
+                    google_button.disabled = False  # ✅ Re-enable Google button
                     signup_link.disabled = False
                     email_input.disabled = False
                     password_input.disabled = False
                     timer_text.value = ""
-                    message_text.value = "You can try logging in again."
+                    message_text.value = "✅ You can try logging in again."
                     message_text.color = "green"
                     page.update()
                     break
@@ -153,10 +234,10 @@ def main(page: ft.Page):
                 remaining = 5 - new_failed_count
                 
                 if remaining > 0:
-                    message_text.value = f"Incorrect password. {remaining} attempt(s) remaining."
+                    message_text.value = f"❌ Incorrect password. {remaining} attempt(s) remaining."
                     message_text.color = "orange"
                 else:
-                    message_text.value = "Account locked for 2 minutes!"
+                    message_text.value = "🔒 Account locked for 2 minutes!"
                     message_text.color = "red"
                     # Start lockout timer
                     start_lockout_timer(email, 120)  # 2 minutes = 120 seconds
@@ -167,10 +248,10 @@ def main(page: ft.Page):
             remaining = 5 - new_failed_count
             
             if remaining > 0:
-                message_text.value = f"Invalid credentials. {remaining} attempt(s) remaining."
+                message_text.value = f"❌ Invalid credentials. {remaining} attempt(s) remaining."
                 message_text.color = "orange"
             else:
-                message_text.value = "Account locked for 2 minutes!"
+                message_text.value = "🔒 Account locked for 2 minutes!"
                 message_text.color = "red"
                 # Start lockout timer
                 start_lockout_timer(email, 120)
@@ -179,6 +260,7 @@ def main(page: ft.Page):
     
     # Assign click handlers
     signin_button.on_click = handle_login
+    google_button.on_click = lambda e: handle_google_signin()
     
     def go_to_signup(e):
         page.go("/signup")
@@ -210,20 +292,14 @@ def main(page: ft.Page):
             ft.Divider(height=20, color="transparent"),
             email_input,
             password_input,
-            signin_button,  # Use the new button
-            timer_text,      # Countdown display
+            signin_button,
+            timer_text,
             ft.Container(height=10),
             ft.Text("or", color="#b3b3b3"),
             ft.Container(height=5),
-            ft.Row(
-                [
-                    ft.Icon(name=ft.Icons.G_TRANSLATE, color="white"),
-                    ft.Text("Continue with Google", size=14, color="white"),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-            ),
+            google_button,
             ft.Container(height=15),
-            signup_link,  # Use the new link
+            signup_link,
             ft.Container(height=10),
             message_text,
         ],
