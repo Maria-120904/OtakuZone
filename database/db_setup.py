@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS users (
     address TEXT,
     gender TEXT,
     bio TEXT,
-    role TEXT DEFAULT 'user'
+    role TEXT DEFAULT 'user',
+    two_factor_enabled INTEGER DEFAULT 0
 );
 """)
 
@@ -62,9 +63,20 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 );
 """)
 
-# Password reset codes table
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS password_reset_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    code TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used INTEGER DEFAULT 0
+);
+""")
+
+# Two-Factor Authentication codes table
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS two_factor_codes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL,
     code TEXT NOT NULL,
@@ -78,8 +90,8 @@ CREATE TABLE IF NOT EXISTS password_reset_codes (
 def insert_user(name, username, email, password, role="user"):
     hashed_pw = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
     cursor.execute("""
-        INSERT OR IGNORE INTO users (name, username, email, password, role)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT OR IGNORE INTO users (name, username, email, password, role, two_factor_enabled)
+        VALUES (?, ?, ?, ?, ?, 0)
     """, (name, username, email, hashed_pw, role))
 
 # Admin account
@@ -107,6 +119,7 @@ VALUES (?, ?, ?, ?, ?, ?)
 conn.commit()
 conn.close()
 
-print("Database setup complete — tables created and sample data added!")
-print("Security tables (login_attempts, password_reset_codes) initialized!")
+print("Database setup complete - tables created and sample data added!")
+print("Security tables (login_attempts, password_reset_codes, two_factor_codes) initialized!")
 print("Google ID column added to users table!")
+print("Two-Factor Authentication column added to users table!")

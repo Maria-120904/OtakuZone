@@ -14,6 +14,7 @@ from services.login_security import (
 )
 from services.google_auth import get_google_user_info
 from services.google_user_service import get_or_create_google_user
+from services.two_factor_service import is_2fa_enabled, send_2fa_code
 from theme import set_theme, primary_button, input_field
 
 DB_PATH = "database/otakuzone.db"
@@ -54,14 +55,14 @@ def main(page: ft.Page):
             shape=ft.RoundedRectangleBorder(radius=12),
             overlay_color="#ff4040",
         ),
-        on_click=None  # Will be set later
+        on_click=None
     )
     
     # Forgot Password Button
     forgot_password_button = ft.TextButton(
         "Forgot Password?",
         style=ft.ButtonStyle(color="#E50914"),
-        on_click=None  # Will be set later
+        on_click=None
     )
     
     # Add underline to forgot password button
@@ -92,13 +93,13 @@ def main(page: ft.Page):
         style=ft.ButtonStyle(
             shape=ft.RoundedRectangleBorder(radius=12),
         ),
-        on_click=None  # Will be set later
+        on_click=None
     )
     
     signup_link = ft.TextButton(
         "Don't have an account? Sign up",
         style=ft.ButtonStyle(color="#E50914"),
-        on_click=None  # Will be set later
+        on_click=None
     )
 
     # Timer display
@@ -108,9 +109,9 @@ def main(page: ft.Page):
     def handle_forgot_password(e):
         page.go("/forgot-password")
     
-    # Google Sign In Handler (Real Implementation)
+    # Google Sign In Handler
     def handle_google_signin():
-        message_text.value = "🔄 Opening Google Sign-In..."
+        message_text.value = "Opening Google Sign-In..."
         message_text.color = "blue"
         google_button.disabled = True
         signin_button.disabled = True
@@ -157,19 +158,17 @@ def main(page: ft.Page):
                 else:
                     page.go("/home")
         
-        # Run in separate thread to avoid blocking UI
         threading.Thread(target=google_auth_thread, daemon=True).start()
     
-    # Start countdown timer and disable buttons using async
+    # Start countdown timer
     def start_lockout_timer(email, total_seconds):
         signin_button.disabled = True
-        google_button.disabled = True 
+        google_button.disabled = True
         signup_link.disabled = True
         email_input.disabled = True
         password_input.disabled = True
         page.update()
         
-        # Use async function for countdown
         async def countdown():
             while True:
                 remaining = get_lockout_time_remaining(email, lockout_minutes=2)
@@ -177,15 +176,13 @@ def main(page: ft.Page):
                 if remaining > 0:
                     minutes = remaining // 60
                     seconds = remaining % 60
-                    timer_text.value = f"⏱️ Locked for: {minutes}m {seconds}s"
+                    timer_text.value = f"Locked for: {minutes}m {seconds}s"
                     message_text.value = "Account locked. Please wait..."
                     message_text.color = "red"
                     page.update()
                     
-                    # Wait 1 second before next update
                     await asyncio.sleep(1)
                 else:
-                    # Lockout expired - re-enable buttons
                     signin_button.disabled = False
                     google_button.disabled = False
                     signup_link.disabled = False
@@ -197,7 +194,6 @@ def main(page: ft.Page):
                     page.update()
                     break
         
-        # Start async countdown
         page.run_task(countdown)
 
     # Handle login logic
@@ -207,13 +203,13 @@ def main(page: ft.Page):
 
         # Validation
         if not email or not password:
-            message_text.value = "⚠ Please fill in all fields."
+            message_text.value = "Please fill in all fields."
             message_text.color = "red"
             page.update()
             return
 
         if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            message_text.value = "⚠ Invalid email format."
+            message_text.value = "Invalid email format."
             message_text.color = "red"
             page.update()
             return
@@ -225,26 +221,44 @@ def main(page: ft.Page):
                 start_lockout_timer(email, remaining_seconds)
                 return
 
-        # Get current failed attempts count
-        current_failed = get_failed_attempts(email, minutes=2)
-        
         user = get_user_by_email(email)
         if user:
             stored_hash = user[4]
 
             # Check hashed password
             if bcrypt.checkpw(password.encode("utf-8"), stored_hash):
-                # Clear failed attempts on successful login
                 clear_login_attempts(email)
                 record_login_attempt(email, success=True)
                 
-                session.login(user[0], user[5], user[3])  # store session data
-
-                # Redirect based on role
-                if user[5] == "admin":
-                    page.go("/admin/anime")
+                # Check if 2FA is enabled
+                if is_2fa_enabled(email):
+                    # Send 2FA code
+                    message_text.value = "Sending 2FA code..."
+                    message_text.color = "blue"
+                    page.update()
+                    
+                    success, msg = send_2fa_code(email)
+                    
+                    if success:
+                        # Store user data in page session for 2FA view
+                        page.session.set("2fa_user_data", {
+                            'user_id': user[0],
+                            'role': user[5],
+                            'email': user[3]
+                        })
+                        page.go("/2fa-verify")
+                    else:
+                        message_text.value = f"Failed to send 2FA code: {msg}"
+                        message_text.color = "red"
+                        page.update()
                 else:
-                    page.go("/home")
+                    # No 2FA - direct login
+                    session.login(user[0], user[5], user[3])
+                    
+                    if user[5] == "admin":
+                        page.go("/admin/anime")
+                    else:
+                        page.go("/home")
             else:
                 # Record failed attempt
                 record_login_attempt(email, success=False)
@@ -257,10 +271,9 @@ def main(page: ft.Page):
                 else:
                     message_text.value = "Account locked for 2 minutes!"
                     message_text.color = "red"
-                    # Start lockout timer
-                    start_lockout_timer(email, 120)  # 2 minutes = 120 seconds
+                    start_lockout_timer(email, 120)
         else:
-            # Record failed attempt even for non-existent users (prevent user enumeration)
+            # Record failed attempt
             record_login_attempt(email, success=False)
             new_failed_count = get_failed_attempts(email, minutes=2)
             remaining = 5 - new_failed_count
@@ -269,9 +282,8 @@ def main(page: ft.Page):
                 message_text.value = f"Invalid credentials. {remaining} attempt(s) remaining."
                 message_text.color = "orange"
             else:
-                message_text.value = " Account locked for 2 minutes!"
+                message_text.value = "Account locked for 2 minutes!"
                 message_text.color = "red"
-                # Start lockout timer
                 start_lockout_timer(email, 120)
 
         page.update()
@@ -286,7 +298,7 @@ def main(page: ft.Page):
     
     signup_link.on_click = go_to_signup
 
-    # Check lockout when email loses focus (user enters email)
+    # Check lockout when email loses focus
     def on_email_blur(e):
         email = email_input.value.strip()
         if email and is_account_locked(email, max_attempts=5):
@@ -313,7 +325,7 @@ def main(page: ft.Page):
             password_input,
             signin_button,
             ft.Container(
-                content=forgot_password_container, 
+                content=forgot_password_container,
                 alignment=ft.alignment.center,
                 padding=ft.padding.only(top=5),
             ),

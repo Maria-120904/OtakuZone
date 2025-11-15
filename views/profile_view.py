@@ -3,6 +3,7 @@ import sqlite3
 import bcrypt
 from theme import set_theme, primary_button, input_field
 from services.session_manager import SessionManager
+from services.two_factor_service import is_2fa_enabled, toggle_2fa
 
 DB_PATH = "database/otakuzone.db"
 
@@ -12,7 +13,7 @@ def get_user(user_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT name, username, birthdate, age, address, gender, bio, password, google_id
+        SELECT name, username, birthdate, age, address, gender, bio, password, google_id, email
         FROM users WHERE id = ?
     """, (user_id,))
     data = cursor.fetchone()
@@ -31,16 +32,6 @@ def update_user(user_id, name, username, birthdate, age, address, gender, bio):
     """, (name, username, birthdate, age, address, gender, bio, user_id))
     conn.commit()
     conn.close()
-
-
-# Check if user has password
-def has_password(user_id):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT password FROM users WHERE id = ?", (user_id,))
-    result = cursor.fetchone()
-    conn.close()
-    return result and result[0] is not None
 
 
 # Verify current password
@@ -72,10 +63,8 @@ def main(page: ft.Page):
     page.title = "OtakuZone - Profile"
     page.scroll = "auto"
 
-    # Initialize session
     session = SessionManager(page)
 
-    # Redirect if not logged in
     if not session.is_logged_in():
         page.go("/")
         return
@@ -84,12 +73,13 @@ def main(page: ft.Page):
     user = get_user(user_id)
 
     if not user:
-        page.add(ft.Text("⚠ User not found!", color="red"))
+        page.add(ft.Text("User not found!", color="red"))
         return
 
-    # Check if user has password (or is Google user)
-    user_has_password = user[7] is not None  # password field
-    is_google_user = user[8] is not None  # google_id field
+    # Check user type
+    user_has_password = user[7] is not None
+    is_google_user = user[8] is not None
+    user_email = user[9]
 
     # Pre-fill fields
     name_field = input_field("Name")
@@ -115,9 +105,11 @@ def main(page: ft.Page):
     address_field.value = user[4] or ""
     bio_field.value = user[6] or ""
 
-    # Message text for password operations
+    # Message texts
     password_message = ft.Text(value="", size=12, text_align=ft.TextAlign.CENTER)
+    twofa_message = ft.Text(value="", size=12, text_align=ft.TextAlign.CENTER)
 
+    # Password containers
     change_password_container = ft.Column(
         visible=False, 
         spacing=10,
@@ -129,7 +121,7 @@ def main(page: ft.Page):
         horizontal_alignment=ft.CrossAxisAlignment.CENTER 
     )
 
-    # Change Password Inputs (inline in profile)
+    # Password inputs
     current_password_input = ft.TextField(
         label="Current Password",
         password=True,
@@ -152,7 +144,6 @@ def main(page: ft.Page):
         border_color="#E50914",
     )
 
-    # Set Password Inputs (inline in profile)
     set_password_input = ft.TextField(
         label="Set Password",
         password=True,
@@ -168,7 +159,56 @@ def main(page: ft.Page):
         border_color="#E50914",
     )
 
-    # Change Password Handler
+    # Two-Factor Authentication Toggle
+    twofa_enabled = is_2fa_enabled(user_email)
+    
+    twofa_switch = ft.Switch(
+        value=twofa_enabled,
+        active_color="#E50914",
+        inactive_thumb_color="#b3b3b3",
+    )
+    
+    twofa_status_text = ft.Text(
+        value="Enabled" if twofa_enabled else "Disabled",
+        size=14,
+        color="green" if twofa_enabled else "red",
+        weight="bold",
+    )
+
+    # 2FA Toggle Handler
+    def handle_2fa_toggle(e):
+        new_state = twofa_switch.value
+        
+        # Toggle 2FA
+        toggle_2fa(user_id, new_state)
+        
+        # Update status text
+        twofa_status_text.value = "Enabled" if new_state else "Disabled"
+        twofa_status_text.color = "green" if new_state else "red"
+        
+        # Show message
+        twofa_message.value = f"2FA has been {'enabled' if new_state else 'disabled'}!"
+        twofa_message.color = "green"
+        
+        page.update()
+
+    twofa_switch.on_change = handle_2fa_toggle
+
+    # 2FA Container
+    twofa_container = ft.Container(
+        content=ft.Row(
+            [
+                ft.Text("Two-Factor Authentication:", size=14, weight="bold", color="white"),
+                twofa_switch,
+                twofa_status_text,
+            ],
+            spacing=10,
+            alignment=ft.MainAxisAlignment.CENTER,
+        ),
+        visible=True,
+    )
+
+    # Password handlers
     def show_change_password_inputs(e):
         change_password_container.visible = True
         set_password_container.visible = False
@@ -181,40 +221,34 @@ def main(page: ft.Page):
         new_pw = new_password_input.value.strip()
         confirm_pw = confirm_new_password_input.value.strip()
         
-        # Validation
         if not all([current_pw, new_pw, confirm_pw]):
-            password_message.value = "❌ All fields are required"
+            password_message.value = "All fields are required"
             password_message.color = "red"
             page.update()
             return
         
-        # Verify current password
         if not verify_password(user_id, current_pw):
-            password_message.value = "❌ Current password is incorrect"
+            password_message.value = "Current password is incorrect"
             password_message.color = "red"
             page.update()
             return
         
-        # Check if new passwords match
         if new_pw != confirm_pw:
-            password_message.value = "❌ New passwords do not match"
+            password_message.value = "New passwords do not match"
             password_message.color = "red"
             page.update()
             return
         
-        # Check password length
         if len(new_pw) < 6:
-            password_message.value = "❌ Password must be at least 6 characters"
+            password_message.value = "Password must be at least 6 characters"
             password_message.color = "red"
             page.update()
             return
         
-        # Update password
         update_password(user_id, new_pw)
         password_message.value = "Password changed successfully!"
         password_message.color = "green"
         
-        # Clear inputs and hide container
         current_password_input.value = ""
         new_password_input.value = ""
         confirm_new_password_input.value = ""
@@ -231,7 +265,6 @@ def main(page: ft.Page):
         password_message.value = ""
         page.update()
 
-    # Set Password Handler
     def show_set_password_inputs(e):
         set_password_container.visible = True
         change_password_container.visible = False
@@ -243,38 +276,32 @@ def main(page: ft.Page):
         new_pw = set_password_input.value.strip()
         confirm_pw = confirm_set_password_input.value.strip()
         
-        # Validation
         if not new_pw or not confirm_pw:
-            password_message.value = "❌ All fields are required"
+            password_message.value = "All fields are required"
             password_message.color = "red"
             page.update()
             return
         
-        # Check if passwords match
         if new_pw != confirm_pw:
-            password_message.value = "❌ Passwords do not match"
+            password_message.value = "Passwords do not match"
             password_message.color = "red"
             page.update()
             return
         
-        # Check password length
         if len(new_pw) < 6:
-            password_message.value = "❌ Password must be at least 6 characters"
+            password_message.value = "Password must be at least 6 characters"
             password_message.color = "red"
             page.update()
             return
         
-        # Set password
         update_password(user_id, new_pw)
         password_message.value = "Password set successfully! You can now login with email and password."
         password_message.color = "green"
         
-        # Clear inputs and update button
         set_password_input.value = ""
         confirm_set_password_input.value = ""
         set_password_container.visible = False
         
-        # Update to "Change Password" button
         password_button.text = "Change Password"
         password_button.on_click = show_change_password_inputs
         password_button_container.visible = True
@@ -288,7 +315,6 @@ def main(page: ft.Page):
         password_message.value = ""
         page.update()
 
-    # Password Button (Change or Set based on user type)
     password_button = ft.TextButton(
         text="Change Password" if user_has_password else "Set Password",
         style=ft.ButtonStyle(color="#E50914"),
@@ -362,7 +388,6 @@ def main(page: ft.Page):
         ),
     ]
 
-    # Save handler
     def handle_save(e):
         update_user(
             user_id,
@@ -383,11 +408,9 @@ def main(page: ft.Page):
         dialog.open = True
         page.update()
 
-    # Back button
     def go_back(e):
         page.go("/home")
 
-    # Header layout
     header = ft.Row(
         [
             ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=go_back),
@@ -396,15 +419,13 @@ def main(page: ft.Page):
         alignment="start",
     )
 
-    # Account Type Info
     account_type_text = ft.Text(
-        f"📧 Account Type: {'Google Account' if is_google_user else 'Email/Password Account'}",
+        f"Account Type: {'Google Account' if is_google_user else 'Email/Password Account'}",
         size=12,
         color="#b3b3b3",
         italic=True,
     )
 
-    # Main layout
     layout = ft.Column(
         [
             header,
@@ -421,7 +442,10 @@ def main(page: ft.Page):
             password_button_container,
             change_password_container,  
             set_password_container,     
-            password_message,           
+            password_message,
+            ft.Container(height=20),
+            twofa_container,
+            twofa_message,
             ft.Container(height=10),
             ft.Container(primary_button("Save Profile", handle_save), padding=10),
         ],

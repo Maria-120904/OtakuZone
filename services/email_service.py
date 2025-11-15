@@ -38,15 +38,32 @@ Best regards,
 OtakuZone Team
 """
 
+# 2FA Email Template
+TWO_FACTOR_SUBJECT = "OtakuZone - Two-Factor Authentication Code"
+TWO_FACTOR_BODY = """
+Hello,
+
+You are attempting to sign in to OtakuZone.
+
+Your two-factor authentication code is: {code}
+
+This code will expire in 5 minutes.
+
+If you didn't attempt to sign in, please secure your account immediately.
+
+Best regards,
+OtakuZone Team
+"""
+
 
 def generate_reset_code():
     """Generate a 6-digit verification code"""
     return ''.join(random.choices(string.digits, k=6))
 
 
-def send_reset_code_email(recipient_email, reset_code):
+def send_email(recipient_email, subject, body):
     """
-    Send password reset code to user's email
+    Generic email sending function
     Returns: (success: bool, error_message: str or None)
     """
     print(f"\n{'='*60}")
@@ -54,7 +71,7 @@ def send_reset_code_email(recipient_email, reset_code):
     print(f"{'='*60}")
     print(f"From: {EMAIL_ADDRESS}")
     print(f"To: {recipient_email}")
-    print(f"Code: {reset_code}")
+    print(f"Subject: {subject}")
     print(f"SMTP Server: {EMAIL_HOST}:{EMAIL_PORT}")
     print(f"Password Length: {len(EMAIL_PASSWORD)} chars")
     print(f"{'='*60}\n")
@@ -64,20 +81,23 @@ def send_reset_code_email(recipient_email, reset_code):
         message = MIMEMultipart()
         message["From"] = EMAIL_ADDRESS
         message["To"] = recipient_email
-        message["Subject"] = RESET_PASSWORD_SUBJECT
+        message["Subject"] = subject
         
         # Email body
-        body = RESET_PASSWORD_BODY.format(code=reset_code)
         message.attach(MIMEText(body, "plain"))
         
         print("Step 1: Connecting to SMTP server...")
-        server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT, timeout=30)
-        print("Connected!")
         
-        print("Step 2: Starting TLS encryption...")
-        server.set_debuglevel(1)  # Show detailed SMTP communication
-        server.starttls()
-        print("TLS started!")
+        # Support both TLS and SSL
+        if EMAIL_PORT == 465:
+            server = smtplib.SMTP_SSL(EMAIL_HOST, EMAIL_PORT, timeout=30)
+            print("Connected with SSL!")
+        else:
+            server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT, timeout=30)
+            print("Connected!")
+            print("Step 2: Starting TLS encryption...")
+            server.starttls()
+            print("TLS started!")
         
         print("Step 3: Logging in...")
         server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
@@ -94,7 +114,7 @@ def send_reset_code_email(recipient_email, reset_code):
     except smtplib.SMTPAuthenticationError as e:
         error_msg = f"Authentication failed: {str(e)}"
         print(error_msg)
-        return False, "Authentication failed. Check your email password."
+        return False, "Email authentication failed. Check App Password."
         
     except smtplib.SMTPConnectError as e:
         error_msg = f"Connection failed: {str(e)}"
@@ -112,6 +132,18 @@ def send_reset_code_email(recipient_email, reset_code):
         import traceback
         traceback.print_exc()
         return False, f"Error: {str(e)}"
+
+
+def send_reset_code_email(recipient_email, reset_code):
+    """Send password reset code to user's email"""
+    body = RESET_PASSWORD_BODY.format(code=reset_code)
+    return send_email(recipient_email, RESET_PASSWORD_SUBJECT, body)
+
+
+def send_2fa_code_email(recipient_email, code):
+    """Send 2FA verification code to user's email"""
+    body = TWO_FACTOR_BODY.format(code=code)
+    return send_email(recipient_email, TWO_FACTOR_SUBJECT, body)
 
 
 def send_test_email():
