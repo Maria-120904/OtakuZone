@@ -12,6 +12,10 @@ venv/
 credentials.json
 token.pickle
 
+# Email Configuration (contains sensitive data)
+config/email_config.py
+
 # Flet/IDE
 .vscode/
 .idea/
+  

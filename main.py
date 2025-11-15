@@ -7,6 +7,7 @@ from views.anime_detail_view import main as anime_detail_view
 from views.admin_anime_mgmt import main as admin_anime
 from views.admin_user_mgmt import main as admin_user
 from views.profile_view import main as profile_view
+from views.forgot_password_view import main as forgot_password_view 
 from services.session_manager import SessionManager
 
 # ROUTER CONTROLLER
@@ -26,6 +27,8 @@ def main(page: ft.Page):
             login_view(page)
         elif route == "/signup":
             signup_view(page)
+        elif route == "/forgot-password":
+            forgot_password_view(page)
         elif route == "/home":
             if user_id:
                 user_home(page)

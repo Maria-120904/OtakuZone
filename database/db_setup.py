@@ -53,13 +53,24 @@ CREATE TABLE IF NOT EXISTS favorites (
 );
 """)
 
-# ✅ Login attempts table for security
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS login_attempts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL,
     attempt_time TEXT NOT NULL,
     success INTEGER DEFAULT 0
+);
+""")
+
+# Password reset codes table
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS password_reset_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    code TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used INTEGER DEFAULT 0
 );
 """)
 
@@ -96,6 +107,6 @@ VALUES (?, ?, ?, ?, ?, ?)
 conn.commit()
 conn.close()
 
-print("✅ Database setup complete — tables created and sample data added!")
-print("✅ Security table (login_attempts) initialized!")
-print("✅ Google ID column added to users table!")
+print("Database setup complete — tables created and sample data added!")
+print("Security tables (login_attempts, password_reset_codes) initialized!")
+print("Google ID column added to users table!")
