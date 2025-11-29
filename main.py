@@ -9,6 +9,7 @@ from views.admin_user_mgmt import main as admin_user
 from views.profile_view import main as profile_view
 from views.forgot_password_view import main as forgot_password_view
 from views.two_factor_verify_view import main as two_factor_verify_view
+from views.email_verification_view import main as email_verification_view
 from services.session_manager import SessionManager
 
 # ROUTER CONTROLLER
@@ -36,6 +37,13 @@ def main(page: ft.Page):
                 two_factor_verify_view(page, user_data)
             else:
                 page.go("/login")
+        elif route == "/verify-email":
+            email = page.session.get("verification_email")
+            name = page.session.get("verification_name")
+            if email and name:
+                email_verification_view(page, email, name)
+            else:
+                page.go("/signup")
         elif route == "/home":
             if user_id:
                 user_home(page)

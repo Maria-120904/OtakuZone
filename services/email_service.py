@@ -55,6 +55,25 @@ Best regards,
 OtakuZone Team
 """
 
+# Email Verification Template
+EMAIL_VERIFICATION_SUBJECT = "OtakuZone - Verify Your Email Address"
+EMAIL_VERIFICATION_BODY = """
+Hello {name},
+
+Thank you for signing up for OtakuZone!
+
+To complete your registration, please verify your email address using the code below:
+
+Verification Code: {code}
+
+This code will expire in 10 minutes.
+
+If you didn't create an account with OtakuZone, please ignore this email.
+
+Best regards,
+OtakuZone Team
+"""
+
 
 def generate_reset_code():
     """Generate a 6-digit verification code"""
@@ -144,6 +163,12 @@ def send_2fa_code_email(recipient_email, code):
     """Send 2FA verification code to user's email"""
     body = TWO_FACTOR_BODY.format(code=code)
     return send_email(recipient_email, TWO_FACTOR_SUBJECT, body)
+
+
+def send_verification_code_email(recipient_email, code, name):
+    """Send email verification code for signup"""
+    body = EMAIL_VERIFICATION_BODY.format(code=code, name=name)
+    return send_email(recipient_email, EMAIL_VERIFICATION_SUBJECT, body)
 
 
 def send_test_email():
