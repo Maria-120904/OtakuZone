@@ -6,11 +6,12 @@ import threading
 from theme import set_theme, primary_button, input_field
 from services.google_auth import get_google_user_info
 from services.google_user_service import get_or_create_google_user
+from services.email_verification_service import send_verification_code
 
 DB_PATH = "database/otakuzone.db"
 
 
-# --- Database Helpers ---
+# Database Helpers
 def create_user_table():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -27,34 +28,16 @@ def create_user_table():
             address TEXT,
             gender TEXT,
             bio TEXT,
-            role TEXT DEFAULT 'user'
+            role TEXT DEFAULT 'user',
+            two_factor_enabled INTEGER DEFAULT 0,
+            email_verified INTEGER DEFAULT 0
         )
     """)
     conn.commit()
     conn.close()
 
 
-def add_user(name, username, email, password):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    # Check for existing email or username
-    cursor.execute("SELECT id FROM users WHERE email=? OR username=?", (email, username))
-    if cursor.fetchone():
-        conn.close()
-        raise ValueError("Email or username already exists.")
-
-    # Hash password
-    hashed_pw = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
-    cursor.execute(
-        "INSERT INTO users (name, username, email, password) VALUES (?, ?, ?, ?)",
-        (name, username, email, hashed_pw),
-    )
-    conn.commit()
-    conn.close()
-
-
-# --- Main Page ---
+# Main Page
 def main(page: ft.Page):
     set_theme(page)
     page.title = "OtakuZone - Sign Up"
@@ -69,7 +52,7 @@ def main(page: ft.Page):
     password_input = input_field("Password", password=True)
     message_text = ft.Text(value="", color="red", size=14)
 
-    # ✅ Google Sign Up Button
+    # Google Sign Up Button
     google_button = ft.ElevatedButton(
         content=ft.Row(
             [
@@ -93,9 +76,9 @@ def main(page: ft.Page):
         on_click=lambda e: handle_google_signup(),
     )
 
-    # ✅ Google Sign Up Handler (Real Implementation)
+    # Google Sign Up Handler
     def handle_google_signup():
-        message_text.value = "🔄 Opening Google Sign-In..."
+        message_text.value = "Opening Google Sign-In..."
         message_text.color = "blue"
         google_button.disabled = True
         page.update()
@@ -104,7 +87,7 @@ def main(page: ft.Page):
             user_info, error = get_google_user_info()
             
             if error:
-                message_text.value = f"❌ Error: {error}"
+                message_text.value = f"Error: {error}"
                 message_text.color = "red"
                 google_button.disabled = False
                 page.update()
@@ -119,29 +102,28 @@ def main(page: ft.Page):
                 )
                 
                 if user_id is None:
-                    message_text.value = "❌ Email already registered with password login. Please use regular login."
+                    message_text.value = "Email already registered with password login. Please use regular login."
                     message_text.color = "red"
                     google_button.disabled = False
                     page.update()
                     return
                 
                 if is_new:
-                    message_text.value = f"✅ Account created for {user_info['email']}! Redirecting to login..."
+                    message_text.value = f"Account created for {user_info['email']}! Redirecting to login..."
                     message_text.color = "green"
                     page.update()
                     import time
                     time.sleep(2)
                     page.go("/login")
                 else:
-                    message_text.value = "ℹ️ Account already exists. Please use login page."
+                    message_text.value = "Account already exists. Please use login page."
                     message_text.color = "orange"
                     google_button.disabled = False
                     page.update()
         
-        # Run in separate thread to avoid blocking UI
         threading.Thread(target=google_auth_thread, daemon=True).start()
 
-    # --- Signup handler ---
+    # Signup handler
     def handle_signup(e):
         name = name_input.value.strip()
         username = username_input.value.strip()
@@ -150,43 +132,59 @@ def main(page: ft.Page):
 
         # Validation
         if not all([name, username, email, password]):
-            message_text.value = "⚠ Please fill in all fields."
+            message_text.value = "Please fill in all fields."
             message_text.color = "red"
             page.update()
             return
 
         if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            message_text.value = "⚠ Invalid email format."
+            message_text.value = "Invalid email format."
             message_text.color = "red"
             page.update()
             return
 
         if len(password) < 6:
-            message_text.value = "⚠ Password must be at least 6 characters long."
+            message_text.value = "Password must be at least 6 characters long."
             message_text.color = "red"
             page.update()
             return
 
-        try:
-            add_user(name, username, email, password)
-            message_text.value = "✅ Account created successfully! Redirecting..."
-            message_text.color = "green"
-            page.update()
-            page.go("/login")
-        except ValueError as ve:
-            message_text.value = str(ve)
-            message_text.color = "red"
-        except Exception as ex:
-            message_text.value = f"Error: {str(ex)}"
-            message_text.color = "red"
+        # Prepare user data
+        user_data = {
+            'name': name,
+            'username': username,
+            'password': password
+        }
 
+        # Send verification code
+        message_text.value = "Sending verification code to your email..."
+        message_text.color = "blue"
         page.update()
 
-    # --- Navigation ---
+        success, msg = send_verification_code(email, user_data)
+
+        if success:
+            message_text.value = "Verification code sent! Redirecting..."
+            message_text.color = "green"
+            page.update()
+
+            # Store email and name in session for verification page
+            page.session.set("verification_email", email)
+            page.session.set("verification_name", name)
+
+            import time
+            time.sleep(1)
+            page.go("/verify-email")
+        else:
+            message_text.value = msg
+            message_text.color = "red"
+            page.update()
+
+    # Navigation
     def go_to_login(e):
         page.go("/login")
 
-    # --- Layout ---
+    # Layout
     layout = ft.Column(
         [
             ft.Container(
@@ -194,7 +192,7 @@ def main(page: ft.Page):
                 alignment=ft.alignment.center,
                 padding=10
             ),
-            ft.Text("Already registered? Log in here.", size=14, color="#b3b3b3"),
+            ft.Text("Join OtakuZone today!", size=14, color="#b3b3b3"),
             ft.Divider(height=20, color="transparent"),
             name_input,
             username_input,
