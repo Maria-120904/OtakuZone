@@ -39,6 +39,13 @@ def main(page: ft.Page):
     def show_anime_detail(anime):
         page.go(f"/detail/{anime[0]}")
 
+    # --- CATEGORY FILTER STATE ---
+    category_names = [
+        "All", "Movie", "Ongoing", "Completed",
+        "Upcoming", "Popular", "TV Series", "Last update"
+    ]
+    selected_category = "All"
+
     # Anime list container (2 columns, many rows)
     anime_items = ft.GridView(
         max_extent=180,  # 2 columns for 360px+padding
@@ -49,16 +56,25 @@ def main(page: ft.Page):
         expand=True,
     )
 
-    # Update anime list with search filter
-    def update_anime_list(keyword=""):
+    # Update anime list with search filter and category filter
+    def update_anime_list(keyword="", selected_cat="All"):
         anime_items.controls.clear()
         anime_data = get_all_anime()
         keyword = keyword.lower()
+        found = False
 
         for anime in anime_data:
+            # Filter by search keyword
             if keyword and keyword not in anime[1].lower():
                 continue
 
+            # Filter by category
+            if selected_cat != "All":
+                anime_categories = [c.strip().lower() for c in (anime[3] or "").split(",")]
+                if selected_cat.lower() not in anime_categories:
+                    continue
+
+            found = True
             # Placeholder Image (fixed width and height, no padding left/right/top, only bottom)
             image = ft.Container(
                 content=ft.Icon(ft.Icons.IMAGE, size=48, color="#444"),
@@ -99,10 +115,15 @@ def main(page: ft.Page):
                 on_click=lambda e, a=anime: show_anime_detail(a),
             )
             anime_items.controls.append(card)
+
+        if not found:
+            anime_items.controls.append(
+                ft.Text(f"No anime found in '{selected_cat}' category.", color="white", size=14, width=360)
+            )
         page.update()
 
     def search_anime(e):
-        update_anime_list(search_input.value)
+        update_anime_list(search_input.value, selected_category)
 
     # Navigation handlers
     def navigate_to(route):
@@ -137,17 +158,16 @@ def main(page: ft.Page):
         width=400,
     )
 
-    # Category buttons
-    category_names = [
-        "All", "Movie", "Ongoing", "Completed",
-        "Upcoming", "Popular", "TV Series", "Last update"
-    ]
-
-    def on_category_click(e):
-        # Implement filtering here if needed
-        pass
-
+    # --- CATEGORY BUTTONS ---
     category_buttons = []
+    def on_category_click(e, name):
+        nonlocal selected_category
+        selected_category = name
+        for btn in category_buttons:
+            btn.bgcolor = "#E50914" if btn.data == selected_category else "black"
+        update_anime_list(search_input.value, selected_category)
+        page.update()
+
     for name in category_names:
         if name in ["Completed", "Upcoming", "TV Series"]:
             text_size = 8
@@ -160,11 +180,12 @@ def main(page: ft.Page):
             style=ft.ButtonStyle(
                 shape=ft.RoundedRectangleBorder(radius=16),
                 padding=ft.padding.symmetric(horizontal=16, vertical=0),
-                bgcolor="black",
+                bgcolor="#E50914" if name == "All" else "black",
                 color="white",
             ), 
             height=36,
-            on_click=on_category_click,
+            data=name,
+            on_click=lambda e, n=name: on_category_click(e, n),
         )
         category_buttons.append(btn)
 
@@ -261,7 +282,7 @@ def main(page: ft.Page):
         ]
     )
 
-    update_anime_list()
+    update_anime_list(selected_cat=selected_category)
 
     page.add(
         ft.Container(header, width=400, padding=ft.padding.only(top=5, left=5, right=5)),
