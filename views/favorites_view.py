@@ -1,5 +1,6 @@
 import flet as ft
 import sqlite3
+import os
 from services.session_manager import SessionManager
 
 DB_PATH = "database/otakuzone.db"
@@ -8,7 +9,7 @@ def get_favorite_anime(user_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT a.id, a.title, a.genre, a.category, a.episodes
+        SELECT a.id, a.title, a.genre, a.category, a.episodes, a.image_path
         FROM anime a
         JOIN favorites f ON a.id = f.anime_id
         WHERE f.user_id = ?
@@ -37,13 +38,19 @@ def main(page: ft.Page):
     def show_detail(anime):
         page.go(f"/detail/{anime[0]}")
 
-    # Header
-    header = ft.Row(
+    # ✅ Fixed Header with proper divider width
+    header = ft.Column(
         [
-            ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=back_to_home),
-            ft.Text("My Favorites", size=22, weight="bold", color="white"),
+            ft.Row(
+                [
+                    ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=back_to_home),
+                    ft.Text("My Favorites", size=22, weight="bold", color="white"),
+                ],
+                alignment="start",
+            ),
+            ft.Divider(color="#E50914", height=1),
         ],
-        alignment="start",
+        spacing=10,
         width=400,
     )
 
@@ -52,8 +59,11 @@ def main(page: ft.Page):
     if not favorites:
         page.add(
             header,
-            ft.Divider(color="#E50914"),
-            ft.Text("No favorites yet!", size=16, italic=True, color="white", width=360)
+            ft.Container(
+                ft.Text("No favorites yet!", size=16, italic=True, color="white"),
+                padding=20,
+                alignment=ft.alignment.center,
+            )
         )
         return
 
@@ -66,54 +76,110 @@ def main(page: ft.Page):
     )
 
     for anime in favorites:
-        # genre/category chips
+        # ✅ Get image path (index 5)
+        img_path = anime[5]
+        
+        # ✅ Create image with actual anime image or red placeholder
+        if img_path and os.path.exists(img_path):
+            anime_image = ft.Container(
+                content=ft.Image(
+                    src=img_path,
+                    width=80,
+                    height=110,
+                    fit="cover",
+                ),
+                width=80,
+                height=110,
+                border_radius=8,
+                clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+                margin=ft.margin.only(right=10),
+            )
+        else:
+            anime_image = ft.Container(
+                width=80,
+                height=110,
+                bgcolor="red",
+                border_radius=8,
+                margin=ft.margin.only(right=10),
+            )
+        
+        # ✅ Genre/category chips - ONLY FIRST 2 + "+N more"
         genre_list = [g.strip() for g in anime[2].split(",") if g.strip()]
         if anime[3]:
             genre_list.append(anime[3])
+        
+        # Take only first 2 genres
+        display_genres = genre_list[:2]
+        remaining_count = len(genre_list) - 2
+        
         genre_chips = [
             ft.Container(
-                ft.Text(g, color="white", size=11, text_align="center"),
+                ft.Text(g, color="white", size=10, text_align="center"),
                 bgcolor="#18191A",
                 border=ft.border.all(1, "white"),
                 border_radius=4,
-                padding=ft.padding.symmetric(horizontal=8, vertical=2),
-                margin=ft.margin.only(right=4, top=2, bottom=2),
+                padding=ft.padding.symmetric(horizontal=6, vertical=2),
+                margin=ft.margin.only(right=4, bottom=4),
             )
-            for g in genre_list
+            for g in display_genres
         ]
+        
+        # ✅ Add "+N more" chip if there are more than 2 genres
+        if remaining_count > 0:
+            genre_chips.append(
+                ft.Container(
+                    ft.Text(f"+{remaining_count} more", color="#b3b3b3", size=9, text_align="center"),
+                    bgcolor="#18191A",
+                    border=ft.border.all(1, "#b3b3b3"),
+                    border_radius=4,
+                    padding=ft.padding.symmetric(horizontal=5, vertical=2),
+                    margin=ft.margin.only(right=4, bottom=4),
+                )
+            )
 
         card = ft.GestureDetector(
             content=ft.Container(
                 ft.Row(
                     [
-                        # Red image placeholder
-                        ft.Container(
-                            width=80,
-                            height=110,
-                            bgcolor="red",
-                            border_radius=4,
-                            margin=ft.margin.only(right=2),
-                        ),
-                        # Info
+                        anime_image,
+                        # ✅ Fixed Info Column with proper text wrapping
                         ft.Column(
                             [
-                                ft.Text(anime[1], size=15, weight="bold", color="white", max_lines=2, overflow="ellipsis"),
-                                ft.Text(f"{anime[4]} episodes in total", size=12, color="#cccccc"),
-                                ft.Row(genre_chips, wrap=True, spacing=0),
+                                ft.Text(
+                                    anime[1], 
+                                    size=14, 
+                                    weight="bold", 
+                                    color="white", 
+                                    max_lines=1,  # ✅ Only 1 line
+                                    overflow=ft.TextOverflow.ELLIPSIS,  # ✅ Add "..."
+                                    width=270,
+                                ),
+                                ft.Text(
+                                    f"{anime[4]} episodes in total", 
+                                    size=11, 
+                                    color="#b3b3b3",
+                                    width=270,
+                                ),
+                                ft.Row(
+                                    genre_chips, 
+                                    wrap=True, 
+                                    spacing=0,
+                                    width=270,
+                                ),
                             ],
                             alignment="start",
-                            spacing=4,
-                            width=220,
+                            spacing=6,
+                            expand=True,
                         ),
                     ],
                     alignment="start",
-                    vertical_alignment="center",
+                    vertical_alignment="start",
+                    spacing=0,
                 ),
                 padding=10,
                 border_radius=8,
                 bgcolor="#18191A",
                 margin=ft.margin.only(bottom=10),
-                height=130,
                 width=380,
             ),
             on_tap=lambda e, a=anime: show_detail(a),
@@ -123,8 +189,10 @@ def main(page: ft.Page):
 
     page.add(
         header,
-        ft.Divider(color="#E50914"),
-        anime_items
+        ft.Container(
+            anime_items,
+            padding=ft.padding.only(top=10),
+        )
     )
 
 if __name__ == "__main__":
