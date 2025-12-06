@@ -480,19 +480,24 @@ def main(page: ft.Page):
     def go_back(e):
         page.go("/home")
 
-    header = ft.Row(
+    header = ft.Column(
         [
-            ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=go_back),
-            ft.Text("My Profile", size=22, weight="bold", color="white"),
+            ft.Row(
+                [
+                    ft.IconButton(icon=ft.Icons.ARROW_BACK, on_click=go_back),
+                    ft.Text("My Profile", size=22, weight="bold", color="white"),
+                ],
+                alignment="start",
+            ),
+            ft.Divider(color="#E50914", height=1),
         ],
-        alignment="start",
+        spacing=10,
         width=400,
     )
 
     layout = ft.Column(
         [
-            ft.Container(header, padding=ft.padding.symmetric(horizontal=20), width=400),
-            ft.Divider(color="#E50914"),
+            header, 
             ft.Container(
                 ft.Column(
                     [
