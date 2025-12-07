@@ -45,14 +45,28 @@ def main(page: ft.Page):
 
     create_user_table()
 
-    # Input fields
+    # ✅ Input fields - same width as login (300px)
     name_input = input_field("Full Name")
     username_input = input_field("Username")
     email_input = input_field("Email")
     password_input = input_field("Password", password=True)
     message_text = ft.Text(value="", color="red", size=14)
 
-    # Google Sign Up Button
+    # ✅ Sign Up Button
+    signup_button = ft.ElevatedButton(
+        text="Sign Up",
+        width=300,
+        height=45,
+        bgcolor="#E50914",
+        color="white",
+        style=ft.ButtonStyle(
+            shape=ft.RoundedRectangleBorder(radius=12),
+            overlay_color="#ff4040",
+        ),
+        on_click=None
+    )
+
+    # ✅ Google Sign Up Button - same as login (white bg, black text)
     google_button = ft.ElevatedButton(
         content=ft.Row(
             [
@@ -61,19 +75,26 @@ def main(page: ft.Page):
                     width=20,
                     height=20,
                 ),
-                ft.Text("Continue with Google", size=14, color="white"),
+                ft.Text("Continue with Google", size=14, color="black"),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             spacing=10,
         ),
         width=300,
         height=45,
-        bgcolor="#4285F4",
+        bgcolor="white",
         color="white",
         style=ft.ButtonStyle(
             shape=ft.RoundedRectangleBorder(radius=12),
         ),
-        on_click=lambda e: handle_google_signup(),
+        on_click=None
+    )
+
+    # ✅ Already have account link
+    login_link = ft.TextButton(
+        "Already have an account? Login",
+        style=ft.ButtonStyle(color="#E50914"),
+        on_click=None
     )
 
     # Google Sign Up Handler
@@ -81,6 +102,7 @@ def main(page: ft.Page):
         message_text.value = "Opening Google Sign-In..."
         message_text.color = "blue"
         google_button.disabled = True
+        signup_button.disabled = True
         page.update()
         
         def google_auth_thread():
@@ -90,6 +112,7 @@ def main(page: ft.Page):
                 message_text.value = f"Error: {error}"
                 message_text.color = "red"
                 google_button.disabled = False
+                signup_button.disabled = False
                 page.update()
                 return
             
@@ -105,6 +128,7 @@ def main(page: ft.Page):
                     message_text.value = "Email already registered with password login. Please use regular login."
                     message_text.color = "red"
                     google_button.disabled = False
+                    signup_button.disabled = False
                     page.update()
                     return
                 
@@ -119,6 +143,7 @@ def main(page: ft.Page):
                     message_text.value = "Account already exists. Please use login page."
                     message_text.color = "orange"
                     google_button.disabled = False
+                    signup_button.disabled = False
                     page.update()
         
         threading.Thread(target=google_auth_thread, daemon=True).start()
@@ -184,32 +209,55 @@ def main(page: ft.Page):
     def go_to_login(e):
         page.go("/login")
 
-    # Layout
+    # Assign click handlers
+    signup_button.on_click = handle_signup
+    google_button.on_click = lambda e: handle_google_signup()
+    login_link.on_click = go_to_login
+
+    # ✅ Logo image (same as login)
+    logo_image = ft.Image(
+        src="assets/logo/logo.png",
+        width=120,
+        height=120,
+        fit=ft.ImageFit.CONTAIN,
+    )
+
+    # ✅ Layout - matching login page structure
     layout = ft.Column(
         [
+            # ✅ Logo at the top
             ft.Container(
-                ft.Text("Create New Account", size=26, weight="bold", color="white"),
+                content=logo_image,
                 alignment=ft.alignment.center,
-                padding=10
             ),
-            ft.Text("Join OtakuZone today!", size=14, color="#b3b3b3"),
-            ft.Divider(height=20, color="transparent"),
+            # ✅ Title - same size as login (20)
+            ft.Container(
+                ft.Text("Create New Account", size=20, weight="bold", color="white"),
+                alignment=ft.alignment.center,
+            ),
+            # ✅ Subtitle - same size as login (12)
+            ft.Text(
+                "Sign up now and dive into endless anime adventures!",
+                size=12,
+                color="#b3b3b3",
+            ),
+            ft.Divider(height=10, color="transparent"),
+            # ✅ Input fields (all 300px width)
             name_input,
             username_input,
             email_input,
             password_input,
-            primary_button("Sign Up", on_click=handle_signup),
-            ft.Container(height=10),
+            # ✅ Sign Up button (no extra buttons below - clean)
+            signup_button,
+            # ✅ "or" text
             ft.Text("or", color="#b3b3b3"),
-            ft.Container(height=5),
-            google_button,
-            ft.Container(height=15),
-            ft.TextButton(
-                "Already have an account? Login",
-                on_click=go_to_login,
-                style=ft.ButtonStyle(color="#E50914"),
-            ),
             ft.Container(height=10),
+            # ✅ Google button
+            google_button,
+            # ✅ Already have account link
+            login_link,
+            ft.Container(height=4),
+            # ✅ Message text at bottom
             message_text,
         ],
         alignment="center",
