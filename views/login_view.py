@@ -31,7 +31,6 @@ def get_user_by_email(email):
     conn.close()
     return user
 
-
 # Main login view
 def main(page: ft.Page):
     set_theme(page)
@@ -65,13 +64,6 @@ def main(page: ft.Page):
         on_click=None
     )
     
-    # Add underline to forgot password button
-    forgot_password_container = ft.Container(
-        content=forgot_password_button,
-        border=ft.border.only(bottom=ft.border.BorderSide(1, "#E50914")),
-        padding=0,
-    )
-    
     # Google Sign In Button
     google_button = ft.ElevatedButton(
         content=ft.Row(
@@ -81,14 +73,14 @@ def main(page: ft.Page):
                     width=20,
                     height=20,
                 ),
-                ft.Text("Continue with Google", size=14, color="white"),
+                ft.Text("Continue with Google", size=14, color="black"),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             spacing=10,
         ),
         width=300,
         height=45,
-        bgcolor="#4285F4",
+        bgcolor="white",
         color="white",
         style=ft.ButtonStyle(
             shape=ft.RoundedRectangleBorder(radius=12),
@@ -101,9 +93,6 @@ def main(page: ft.Page):
         style=ft.ButtonStyle(color="#E50914"),
         on_click=None
     )
-
-    # Timer display
-    timer_text = ft.Text(value="", color="red", size=16, weight="bold")
     
     # Forgot Password Handler
     def handle_forgot_password(e):
@@ -150,25 +139,96 @@ def main(page: ft.Page):
                 message_text.color = "green"
                 page.update()
                 
-                # Redirect based on role
+                # ✅ NEW: Resize window based on role
                 import time
                 time.sleep(1)
                 if role == "admin":
-                    page.go("/admin/anime")
+                    page.window_maximized = True
+                    page.window_resizable = True
+                    page.update()
+                    page.go("/admin")
                 else:
                     page.go("/home")
         
         threading.Thread(target=google_auth_thread, daemon=True).start()
     
-    # Start countdown timer
+    # ✅ NEW: Lockout timer in alert dialog
     def start_lockout_timer(email, total_seconds):
+        # Disable all inputs and buttons
         signin_button.disabled = True
         google_button.disabled = True
         signup_link.disabled = True
         email_input.disabled = True
         password_input.disabled = True
+        forgot_password_button.disabled = True
         page.update()
         
+        # Create dialog components
+        timer_display = ft.Text(
+            value="",
+            size=18,
+            weight="bold",
+            color="#E50914",
+            text_align="center"
+        )
+        
+        status_message = ft.Text(
+            value="Account locked. Please wait...",
+            size=14,
+            color="red",
+            text_align="center"
+        )
+        
+        cancel_button = ft.ElevatedButton(
+            "OK",
+            bgcolor=ft.Colors.GREY_100,  # ✅ Grey when timer is counting
+            color="black",  # ✅ Black text on grey background
+            disabled=True,  # Disabled until timer finishes
+            on_click=None
+        )
+        
+        def close_dialog(e):
+            lockout_dialog.open = False
+            page.update()
+        
+        cancel_button.on_click = close_dialog
+        
+        # Create the alert dialog
+        lockout_dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Row(
+                [
+                    ft.Text("Account Locked", size=20, weight="bold", color="E50914"),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=8,
+            ),
+            content=ft.Container(
+                content=ft.Column(
+                    [
+                        status_message,
+                        ft.Divider(height=5, color="transparent"),
+                        timer_display,
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=3,
+                ),
+                width=220,
+                height=90,
+                padding=15,
+            ),
+            actions=[
+                cancel_button,
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        
+        # Show dialog
+        page.overlay.append(lockout_dialog)
+        lockout_dialog.open = True
+        page.update()
+        
+        # Countdown async function
         async def countdown():
             while True:
                 remaining = get_lockout_time_remaining(email, lockout_minutes=2)
@@ -176,21 +236,31 @@ def main(page: ft.Page):
                 if remaining > 0:
                     minutes = remaining // 60
                     seconds = remaining % 60
-                    timer_text.value = f"Locked for: {minutes}m {seconds}s"
-                    message_text.value = "Account locked. Please wait..."
-                    message_text.color = "red"
+                    timer_display.value = f"Locked for: {minutes}m {seconds}s"
+                    status_message.value = "Account locked. Please wait..."
+                    status_message.color = "red"
                     page.update()
                     
                     await asyncio.sleep(1)
                 else:
+                    # Timer finished - enable everything
+                    timer_display.value = "Time's up!"
+                    status_message.value = "You can try logging in again."
+                    status_message.color = "green"
+                    cancel_button.disabled = False
+                    
+                    # ✅ Change button color to red when enabled
+                    cancel_button.bgcolor = "#E50914"
+                    cancel_button.color = "white"
+                    
+                    # Re-enable inputs and buttons
                     signin_button.disabled = False
                     google_button.disabled = False
                     signup_link.disabled = False
                     email_input.disabled = False
                     password_input.disabled = False
-                    timer_text.value = ""
-                    message_text.value = "You can try logging in again."
-                    message_text.color = "green"
+                    forgot_password_button.disabled = False
+                    
                     page.update()
                     break
         
@@ -252,12 +322,17 @@ def main(page: ft.Page):
                         message_text.color = "red"
                         page.update()
                 else:
-                    # No 2FA - direct login
+                    # ✅ NEW: No 2FA - direct login with window resize
                     session.login(user[0], user[5], user[3])
                     
                     if user[5] == "admin":
-                        page.go("/admin/anime")
+                        # ✅ Maximize window for admin
+                        page.window_maximized = True
+                        page.window_resizable = True
+                        page.update()
+                        page.go("/admin")
                     else:
+                        # Regular user stays at mobile size
                         page.go("/home")
             else:
                 # Record failed attempt
@@ -269,8 +344,9 @@ def main(page: ft.Page):
                     message_text.value = f"Incorrect password. {remaining} attempt(s) remaining."
                     message_text.color = "orange"
                 else:
-                    message_text.value = "Account locked for 2 minutes!"
-                    message_text.color = "red"
+                    # ✅ Account locked - show dialog
+                    message_text.value = ""
+                    page.update()
                     start_lockout_timer(email, 120)
         else:
             # Record failed attempt
@@ -282,8 +358,9 @@ def main(page: ft.Page):
                 message_text.value = f"Invalid credentials. {remaining} attempt(s) remaining."
                 message_text.color = "orange"
             else:
-                message_text.value = "Account locked for 2 minutes!"
-                message_text.color = "red"
+                # ✅ Account locked - show dialog
+                message_text.value = ""
+                page.update()
                 start_lockout_timer(email, 120)
 
         page.update()
@@ -308,36 +385,54 @@ def main(page: ft.Page):
     
     email_input.on_blur = on_email_blur
 
+    # ✅ Logo and brand image
+    logo_image = ft.Image(
+        src="assets/logo/logo.png",
+        width=120,
+        height=120,
+        fit=ft.ImageFit.CONTAIN,
+    )
+
+    # ✅ Sign In button + Forgot Password aligned
+    signin_and_forgot_container = ft.Column(
+        [
+            signin_button,
+            ft.Container(
+                content=forgot_password_button,
+                width=300,
+                alignment=ft.alignment.center_right,
+                padding=ft.padding.only(top=0),
+            ),
+        ],
+        spacing=0,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER, 
+    )
+
     layout = ft.Column(
         [
+            # Logo at the top
             ft.Container(
-                ft.Text("Welcome back!", size=26, weight="bold", color="white"),
+                content=logo_image,
                 alignment=ft.alignment.center,
-                padding=10,
+            ),
+            ft.Container(
+                ft.Text("Welcome back!", size=20, weight="bold", color="white"),
+                alignment=ft.alignment.center
             ),
             ft.Text(
                 "Use your email and password to log in",
-                size=14,
+                size=12,
                 color="#b3b3b3",
             ),
-            ft.Divider(height=20, color="transparent"),
+            ft.Divider(height=10, color="transparent"),
             email_input,
             password_input,
-            signin_button,
-            ft.Container(
-                content=forgot_password_container,
-                alignment=ft.alignment.center,
-                padding=ft.padding.only(top=5),
-            ),
-            timer_text,
-            ft.Container(height=10),
+            signin_and_forgot_container,
             ft.Text("or", color="#b3b3b3"),
-            ft.Container(height=5),
             google_button,
-            ft.Container(height=15),
             signup_link,
-            ft.Container(height=10),
-            message_text,
+            ft.Container(height=4),
+            message_text
         ],
         alignment="center",
         horizontal_alignment="center",
