@@ -6,10 +6,17 @@ from services.session_manager import SessionManager
 DB_PATH = "database/otakuzone.db"
 
 def get_favorite_anime(user_id):
+    """Get favorite anime with episode count from episodes table"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT a.id, a.title, a.genre, a.category, a.episodes, a.image_path
+        SELECT 
+            a.id, 
+            a.title, 
+            a.genre, 
+            a.category, 
+            a.image_path,
+            (SELECT COUNT(*) FROM episodes WHERE anime_id = a.id) as episode_count
         FROM anime a
         JOIN favorites f ON a.id = f.anime_id
         WHERE f.user_id = ?
@@ -38,7 +45,6 @@ def main(page: ft.Page):
     def show_detail(anime):
         page.go(f"/detail/{anime[0]}")
 
-    # ✅ Fixed Header with proper divider width
     header = ft.Column(
         [
             ft.Row(
@@ -76,10 +82,10 @@ def main(page: ft.Page):
     )
 
     for anime in favorites:
-        # ✅ Get image path (index 5)
-        img_path = anime[5]
+        # ✅ Updated tuple unpacking (no episodes column, episode_count is last)
+        anime_id, title, genre, category, img_path, episode_count = anime
         
-        # ✅ Create image with actual anime image or red placeholder
+        # Create image with actual anime image or red placeholder
         if img_path and os.path.exists(img_path):
             anime_image = ft.Container(
                 content=ft.Image(
@@ -103,10 +109,10 @@ def main(page: ft.Page):
                 margin=ft.margin.only(right=10),
             )
         
-        # ✅ Genre/category chips - ONLY FIRST 2 + "+N more"
-        genre_list = [g.strip() for g in anime[2].split(",") if g.strip()]
-        if anime[3]:
-            genre_list.append(anime[3])
+        # Genre/category chips - ONLY FIRST 2 + "+N more"
+        genre_list = [g.strip() for g in genre.split(",") if g.strip()]
+        if category:
+            genre_list.append(category)
         
         # Take only first 2 genres
         display_genres = genre_list[:2]
@@ -124,7 +130,7 @@ def main(page: ft.Page):
             for g in display_genres
         ]
         
-        # ✅ Add "+N more" chip if there are more than 2 genres
+        # Add "+N more" chip if there are more than 2 genres
         if remaining_count > 0:
             genre_chips.append(
                 ft.Container(
@@ -142,20 +148,19 @@ def main(page: ft.Page):
                 ft.Row(
                     [
                         anime_image,
-                        # ✅ Fixed Info Column with proper text wrapping
                         ft.Column(
                             [
                                 ft.Text(
-                                    anime[1], 
+                                    title, 
                                     size=14, 
                                     weight="bold", 
                                     color="white", 
-                                    max_lines=1,  # ✅ Only 1 line
-                                    overflow=ft.TextOverflow.ELLIPSIS,  # ✅ Add "..."
+                                    max_lines=1,
+                                    overflow=ft.TextOverflow.ELLIPSIS,
                                     width=270,
                                 ),
                                 ft.Text(
-                                    f"{anime[4]} episodes in total", 
+                                    f"{episode_count} episodes in total",  # ✅ Use episode_count
                                     size=11, 
                                     color="#b3b3b3",
                                     width=270,
