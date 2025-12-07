@@ -1,11 +1,15 @@
 import sqlite3
 import bcrypt
 import os
+from dotenv import load_dotenv
 
-DB_PATH = "database/otakuzone.db"
+# Load environment variables
+load_dotenv()
+
+DB_PATH = os.getenv("DB_PATH", "database/otakuzone.db")
 
 # Create folder if not existing
-os.makedirs("database", exist_ok=True)
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 conn = sqlite3.connect(DB_PATH)
 cursor = conn.cursor()
@@ -41,7 +45,7 @@ columns = [col[1] for col in cursor.fetchall()]
 if "profile_image" not in columns:
     cursor.execute("ALTER TABLE users ADD COLUMN profile_image TEXT")
 
-# ✅ UPDATED: Anime table WITHOUT episodes field
+# UPDATED: Anime table WITHOUT episodes field
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS anime (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,7 +111,7 @@ CREATE TABLE IF NOT EXISTS email_verification_codes (
 );
 """)
 
-# ✅ NEW: Episodes table
+# NEW: Episodes table
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS episodes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,7 +140,7 @@ insert_user("Admin", "admin", "admin@otakuzone.com", "admin123", "admin")
 # Regular user account
 insert_user("Test User", "testuser", "user@otakuzone.com", "user123", "user")
 
-# ✅ UPDATED: Sample anime WITHOUT episodes field
+# UPDATED: Sample anime WITHOUT episodes field
 anime_samples = [
     ("Bleach: Thousand-Year Blood War", "Action, Supernatural", "Ongoing", "Ichigo Kurosaki faces Quincy invasion.", ""),
     ("Naruto Shippuden", "Action, Adventure", "Completed", "Naruto's journey to become Hokage.", ""),
@@ -155,11 +159,11 @@ VALUES (?, ?, ?, ?, ?)
 conn.commit()
 conn.close()
 
-print("✅ Database setup complete - tables created and sample data added!")
-print("✅ Anime table created WITHOUT episodes field!")
-print("✅ Episodes table created successfully!")
-print("✅ Security tables initialized!")
-print("✅ Email verification table created!")
-print("✅ Google ID column added to users table!")
-print("✅ Two-Factor Authentication enabled!")
-print("✅ Profile image support added!")
+print("Database setup complete - tables created and sample data added!")
+print("Anime table created WITHOUT episodes field!")
+print("Episodes table created successfully!")
+print("Security tables initialized!")
+print("Email verification table created!")
+print("Google ID column added to users table!")
+print("Two-Factor Authentication enabled!")
+print("Profile image support added!")

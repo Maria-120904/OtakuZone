@@ -1,7 +1,10 @@
 import sqlite3
 import bcrypt
+import os
+from dotenv import load_dotenv
 
-DB_PATH = "database/otakuzone.db"
+load_dotenv()
+DB_PATH = os.getenv("DB_PATH", "database/otakuzone.db")
 
 
 def get_or_create_google_user(email, name, google_id):

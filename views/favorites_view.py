@@ -82,7 +82,7 @@ def main(page: ft.Page):
     )
 
     for anime in favorites:
-        # ✅ Updated tuple unpacking (no episodes column, episode_count is last)
+        # Updated tuple unpacking (no episodes column, episode_count is last)
         anime_id, title, genre, category, img_path, episode_count = anime
         
         # Create image with actual anime image or red placeholder
@@ -160,7 +160,7 @@ def main(page: ft.Page):
                                     width=270,
                                 ),
                                 ft.Text(
-                                    f"{episode_count} episodes in total",  # ✅ Use episode_count
+                                    f"{episode_count} episodes in total",  # Use episode_count
                                     size=11, 
                                     color="#b3b3b3",
                                     width=270,

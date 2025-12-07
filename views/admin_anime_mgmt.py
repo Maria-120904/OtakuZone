@@ -85,7 +85,7 @@ def anime_management_view(page: ft.Page):
     def refresh_anime_list():
         anime_list_view.controls.clear()
         
-        # ✅ Table header (Title, Genre, Category, Episodes, Actions)
+        # Table header (Title, Genre, Category, Episodes, Actions)
         header_row = ft.Row(
             [
                 ft.Text("Title", width=180, weight="bold", color="white"),
@@ -361,7 +361,7 @@ def anime_management_view(page: ft.Page):
             desc = description.value.strip()
             
             if not t or not genres or not categories or not selected_image[0]:
-                form_message.value = "❌ All fields and image are required"
+                form_message.value = "All fields and image are required"
                 form_message.color = "red"
                 page.update()
                 return
@@ -378,7 +378,7 @@ def anime_management_view(page: ft.Page):
                     try:
                         shutil.copy(selected_image[0], img_path)
                     except Exception as ex:
-                        form_message.value = f"❌ Failed to save image: {ex}"
+                        form_message.value = f"Failed to save image: {ex}"
                         form_message.color = "red"
                         page.update()
                         return
@@ -394,7 +394,7 @@ def anime_management_view(page: ft.Page):
                 try:
                     shutil.copy(selected_image[0], img_path)
                 except Exception as ex:
-                    form_message.value = f"❌ Failed to save image: {ex}"
+                    form_message.value = f"Failed to save image: {ex}"
                     form_message.color = "red"
                     page.update()
                     return
@@ -449,7 +449,6 @@ def anime_management_view(page: ft.Page):
         dialog.open = True
         page.update()
 
-    # ✅ Title and Add Anime button in one row (ABOVE the table)
     title_and_add_row = ft.Row(
         [
             ft.Text("Manage Anime", size=16, weight="bold", color="white"),
@@ -462,9 +461,9 @@ def anime_management_view(page: ft.Page):
 
     layout = ft.Column(
         [
-            title_and_add_row,  # ✅ Title + Add button (above divider)
-            ft.Divider(color="#E50914", height=1),  # ✅ Divider below title/button
-            anime_list_view,  # ✅ Table headers and data
+            title_and_add_row,  
+            ft.Divider(color="#E50914", height=1),  
+            anime_list_view, 
         ],
         spacing=10,
         expand=True,

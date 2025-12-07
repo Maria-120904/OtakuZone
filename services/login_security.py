@@ -1,7 +1,10 @@
 import sqlite3
 from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
 
-DB_PATH = "database/otakuzone.db"
+load_dotenv()
+DB_PATH = os.getenv("DB_PATH", "database/otakuzone.db")
 
 def create_login_attempts_table():
     conn = sqlite3.connect(DB_PATH)
@@ -20,7 +23,7 @@ def create_login_attempts_table():
 def record_login_attempt(email, success=False):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    # ✅ Store timestamp as ISO string
+    # Store timestamp as ISO string
     attempt_time = datetime.now().isoformat()
     cursor.execute(
         "INSERT INTO login_attempts (email, attempt_time, success) VALUES (?, ?, ?)",
@@ -33,7 +36,7 @@ def get_failed_attempts(email, minutes=2):
     """Get failed login attempts in the last X minutes"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    # ✅ Calculate cutoff time
+    # Calculate cutoff time
     time_threshold = (datetime.now() - timedelta(minutes=minutes)).isoformat()
     
     cursor.execute("""

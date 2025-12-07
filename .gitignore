@@ -1,21 +1,49 @@
-# Python
+# Environment variables
+.env
+
+# Python cache
 __pycache__/
 *.pyc
-.env
-venv/
-.env.*
-*.sqlite
-*.db
-.DS_Store
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
 
-# Google OAuth
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Credentials
 credentials.json
 token.pickle
 
-# Email Configuration (contains sensitive data)
-config/email_config.py
-
-# Flet/IDE
-.vscode/
-.idea/
-  
+# Assets (optional - remove if you want to track them)
+assets/profile/*
+assets/anime/*
+assets/videos/*
+!assets/profile/.gitkeep
+!assets/anime/.gitkeep
+!assets/videos/.gitkeep

@@ -21,7 +21,7 @@ def get_google_user_info():
     """
     creds = None
     
-    # ✅ Always delete old token to force account selection
+    # Always delete old token to force account selection
     if os.path.exists(TOKEN_FILE):
         os.remove(TOKEN_FILE)
         creds = None
@@ -34,14 +34,14 @@ def get_google_user_info():
         flow = InstalledAppFlow.from_client_secrets_file(
             CREDENTIALS_FILE, SCOPES)
         
-        # ✅ Force account selection screen every time
+        # Force account selection screen every time
         creds = flow.run_local_server(
             port=0,
             prompt='select_account',  # Show account picker
             authorization_prompt_message='Please select your Google account to continue.'
         )
         
-        # ✅ Save credentials temporarily (will be deleted on next login)
+        # Save credentials temporarily (will be deleted on next login)
         with open(TOKEN_FILE, 'wb') as token:
             pickle.dump(creds, token)
     except Exception as e:

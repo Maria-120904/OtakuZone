@@ -45,14 +45,14 @@ def main(page: ft.Page):
 
     create_user_table()
 
-    # ✅ Input fields - same width as login (300px)
+    # Input fields - same width as login (300px)
     name_input = input_field("Full Name")
     username_input = input_field("Username")
     email_input = input_field("Email")
     password_input = input_field("Password", password=True)
     message_text = ft.Text(value="", color="red", size=14)
 
-    # ✅ Sign Up Button
+    # Sign Up Button
     signup_button = ft.ElevatedButton(
         text="Sign Up",
         width=300,
@@ -66,7 +66,7 @@ def main(page: ft.Page):
         on_click=None
     )
 
-    # ✅ Google Sign Up Button - same as login (white bg, black text)
+    # Google Sign Up Button - same as login (white bg, black text)
     google_button = ft.ElevatedButton(
         content=ft.Row(
             [
@@ -90,7 +90,7 @@ def main(page: ft.Page):
         on_click=None
     )
 
-    # ✅ Already have account link
+    # Already have account link
     login_link = ft.TextButton(
         "Already have an account? Login",
         style=ft.ButtonStyle(color="#E50914"),
@@ -214,7 +214,6 @@ def main(page: ft.Page):
     google_button.on_click = lambda e: handle_google_signup()
     login_link.on_click = go_to_login
 
-    # ✅ Logo image (same as login)
     logo_image = ft.Image(
         src="assets/logo/logo.png",
         width=120,
@@ -222,42 +221,32 @@ def main(page: ft.Page):
         fit=ft.ImageFit.CONTAIN,
     )
 
-    # ✅ Layout - matching login page structure
     layout = ft.Column(
         [
-            # ✅ Logo at the top
             ft.Container(
                 content=logo_image,
                 alignment=ft.alignment.center,
             ),
-            # ✅ Title - same size as login (20)
             ft.Container(
                 ft.Text("Create New Account", size=20, weight="bold", color="white"),
                 alignment=ft.alignment.center,
             ),
-            # ✅ Subtitle - same size as login (12)
             ft.Text(
-                "Sign up now and dive into endless anime adventures!",
+                "Sign up and dive into endless anime adventures!",
                 size=12,
                 color="#b3b3b3",
             ),
             ft.Divider(height=10, color="transparent"),
-            # ✅ Input fields (all 300px width)
             name_input,
             username_input,
             email_input,
             password_input,
-            # ✅ Sign Up button (no extra buttons below - clean)
             signup_button,
-            # ✅ "or" text
             ft.Text("or", color="#b3b3b3"),
             ft.Container(height=10),
-            # ✅ Google button
             google_button,
-            # ✅ Already have account link
             login_link,
             ft.Container(height=4),
-            # ✅ Message text at bottom
             message_text,
         ],
         alignment="center",

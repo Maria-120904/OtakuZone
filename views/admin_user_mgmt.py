@@ -6,10 +6,10 @@ import threading
 from theme import primary_button
 from services.session_manager import SessionManager
 from services.email_service import (
-    generate_verification_code,
-    send_admin_user_verification_email,
+    generate_reset_code, 
+    send_verification_code_email, 
     verify_code,
-    resend_verification_code
+    store_verification_code,
 )
 
 DB_PATH = "database/otakuzone.db"
@@ -78,7 +78,7 @@ def user_management_view(page: ft.Page):
     def refresh_user_list():
         user_list_view.controls.clear()
         
-        # ✅ Table header
+        # Table header
         header = ft.Row(
             [
                 ft.Text("Name", width=120, weight="bold", color="white"),
@@ -189,13 +189,13 @@ def user_management_view(page: ft.Page):
             new_role = role_dropdown.value
             
             if not new_name:
-                edit_message.value = "❌ Full Name is required"
+                edit_message.value = "Full Name is required"
                 edit_message.color = "red"
                 page.update()
                 return
             
             if not new_username:
-                edit_message.value = "❌ Username is required"
+                edit_message.value = "Username is required"
                 edit_message.color = "red"
                 page.update()
                 return
@@ -207,7 +207,7 @@ def user_management_view(page: ft.Page):
                 page.update()
                 refresh_user_list()
             else:
-                edit_message.value = f"❌ {msg}"
+                edit_message.value = f"{msg}"
                 edit_message.color = "red"
                 page.update()
         
@@ -371,26 +371,26 @@ def user_management_view(page: ft.Page):
             create_message.value = ""
             
             if not all([name_input.value, username_input.value, email_input.value, password_input.value, confirm_password_input.value]):
-                create_message.value = "❌ All fields are required!"
+                create_message.value = "All fields are required!"
                 create_message.color = "red"
                 page.update()
                 return
             
             if not is_valid_email(email_input.value):
-                create_message.value = "❌ Invalid email format!"
+                create_message.value = "Invalid email format!"
                 create_message.color = "red"
                 page.update()
                 return
             
             if password_input.value != confirm_password_input.value:
-                create_message.value = "❌ Passwords do not match!"
+                create_message.value = "Passwords do not match!"
                 create_message.color = "red"
                 page.update()
                 return
             
             valid, msg = is_valid_password(password_input.value)
             if not valid:
-                create_message.value = f"❌ {msg}"
+                create_message.value = f"{msg}"
                 create_message.color = "red"
                 page.update()
                 return
@@ -402,7 +402,7 @@ def user_management_view(page: ft.Page):
             conn.close()
             
             if existing:
-                create_message.value = "❌ Email or username already exists!"
+                create_message.value = "Email or username already exists!"
                 create_message.color = "red"
                 page.update()
                 return
@@ -413,20 +413,24 @@ def user_management_view(page: ft.Page):
             temp_data["password"] = password_input.value
             temp_data["role"] = role_dropdown.value
             
-            create_message.value = "📧 Sending verification code..."
+            create_message.value = "Sending verification code..."
             create_message.color = "blue"
             send_code_btn_container.content.disabled = True
             page.update()
             
             def send_email_thread():
-                code = generate_verification_code()
-                print(f"🔑 Generated code: {code} for {temp_data['email']}")
+                code = generate_reset_code()
+                print(f"Generated code: {code} for {temp_data['email']}")
                 
-                success, error = send_admin_user_verification_email(temp_data["email"], code)
+                # Store code in database
+                store_verification_code(temp_data["email"], code)
+                
+                # Send email
+                success, error = send_verification_code_email(temp_data["email"], code)
                 
                 if success:
-                    print(f"✅ Email sent successfully to {temp_data['email']}")
-                    create_message.value = "✅ Verification code sent! Check your email."
+                    print(f"Email sent successfully to {temp_data['email']}")
+                    create_message.value = "Verification code sent! Check your email."
                     create_message.color = "green"
                     
                     form_inputs_container.visible = False
@@ -437,8 +441,8 @@ def user_management_view(page: ft.Page):
                     
                     page.update()
                 else:
-                    print(f"❌ Email send failed: {error}")
-                    create_message.value = f"❌ Failed to send email: {error or 'Unknown error'}"
+                    print(f"Email send failed: {error}")
+                    create_message.value = f"Failed to send email: {error or 'Unknown error'}"
                     create_message.color = "red"
                     send_code_btn_container.content.disabled = False
                     page.update()
@@ -451,7 +455,7 @@ def user_management_view(page: ft.Page):
             entered_code = verification_code_input.value
             
             if not entered_code or len(entered_code) != 6:
-                create_message.value = "❌ Please enter the 6-digit code"
+                create_message.value = "Please enter the 6-digit code"
                 create_message.color = "red"
                 page.update()
                 return
@@ -459,19 +463,19 @@ def user_management_view(page: ft.Page):
             is_valid = verify_code(temp_data["email"], entered_code)
             
             if is_valid:
-                create_message.value = "✅ Code verified! Click Save to create user."
+                create_message.value = "Code verified! Click Save to create user."
                 create_message.color = "green"
                 temp_data["verified"] = True
                 page.update()
             else:
-                create_message.value = "❌ Invalid or expired verification code"
+                create_message.value = "Invalid or expired verification code"
                 create_message.color = "red"
                 page.update()
         
         def save_user(ev):
             """Save user (only if verified)"""
             if not temp_data.get("verified"):
-                create_message.value = "❌ Please verify the code first"
+                create_message.value = "Please verify the code first"
                 create_message.color = "red"
                 page.update()
                 return
@@ -489,22 +493,26 @@ def user_management_view(page: ft.Page):
                 page.update()
                 refresh_user_list()
             else:
-                create_message.value = f"❌ {msg}"
+                create_message.value = f"{msg}"
                 create_message.color = "red"
                 page.update()
         
         def resend_code_action(ev):
             """Resend verification code"""
-            create_message.value = "📧 Resending code..."
+            create_message.value = "Resending code..."
             create_message.color = "blue"
             page.update()
             
             def resend_thread():
-                if resend_verification_code(temp_data["email"]):
-                    create_message.value = "✅ New code sent to email"
+                code = generate_reset_code()
+                store_verification_code(temp_data["email"], code)
+                success, error = send_verification_code_email(temp_data["email"], code)
+                
+                if success:
+                    create_message.value = "New code sent to email"
                     create_message.color = "green"
                 else:
-                    create_message.value = "❌ Failed to send code"
+                    create_message.value = f"Failed to send code: {error}"
                     create_message.color = "red"
                 page.update()
             
@@ -561,7 +569,7 @@ def user_management_view(page: ft.Page):
         dialog.open = True
         page.update()
 
-    # ✅ NEW: Title and Create User button in one row (same as Anime Management)
+    # Title and Create User button in one row
     title_and_add_row = ft.Row(
         [
             ft.Text("Manage Users", size=16, weight="bold", color="white"),

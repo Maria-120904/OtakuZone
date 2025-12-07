@@ -29,7 +29,7 @@ def main(page: ft.Page):
         page.go("/")
         return
 
-    # ✅ Custom Sidebar State
+    #Custom Sidebar State
     sidebar_open = False
 
     def show_anime_detail(anime):
@@ -41,15 +41,13 @@ def main(page: ft.Page):
         "Upcoming", "Popular", "TV Series", "Last update"
     ]
     selected_category = "All"
-
-    # ✅ Fixed Anime list container (2 columns ONLY, mobile size)
     anime_items = ft.GridView(
-        max_extent=180,  # 2 columns for ~360px width
+        max_extent=180,  
         child_aspect_ratio=0.7,
         spacing=10,
         run_spacing=10,
         padding=ft.padding.symmetric(horizontal=10, vertical=8),
-        width=400,  # ✅ Fixed width
+        width=400,  
         expand=True,
     )
 
@@ -75,15 +73,15 @@ def main(page: ft.Page):
             # Show image if available, else red placeholder
             img_path = anime[4]
             if img_path and os.path.exists(img_path):
-                # ✅ Image wraps to full card width
+                # Image wraps to full card width
                 image = ft.Container(
                     content=ft.Image(
                         src=img_path,
-                        fit="cover",  # ✅ Cover fills container
+                        fit="cover",  # Cover fills container
                     ),
                     height=140,
                     border_radius=ft.border_radius.only(top_left=12, top_right=12),
-                    clip_behavior=ft.ClipBehavior.ANTI_ALIAS,  # ✅ Clip to border radius
+                    clip_behavior=ft.ClipBehavior.ANTI_ALIAS,  # Clip to border radius
                 )
             else:
                 image = ft.Container(
@@ -104,10 +102,10 @@ def main(page: ft.Page):
             genres = ", ".join([g.strip() for g in anime[2].split(",")])
             genre_text = ft.Container(
                 ft.Text(genres, size=10, color="#b3b3b3", max_lines=2, overflow="ellipsis"),
-                padding=ft.padding.only(left=8, right=8, top=2, bottom=8)  # ✅ Added bottom padding
+                padding=ft.padding.only(left=8, right=8, top=2, bottom=8)  # Added bottom padding
             )
             
-            # ✅ Anime container with fixed height
+            # Anime container with fixed height
             card = ft.Container(
                 content=ft.Column(
                     [
@@ -115,14 +113,14 @@ def main(page: ft.Page):
                         title,
                         genre_text,
                     ],
-                    spacing=0,  # ✅ No spacing between elements
+                    spacing=0, 
                     alignment=ft.MainAxisAlignment.START,
                 ),
                 bgcolor="#18191A",
                 border_radius=12,
                 padding=0,
                 on_click=lambda e, a=anime: show_anime_detail(a),
-                height=220,  # ✅ Fixed card height (140 image + 80 text area)
+                height=220, 
             )
             anime_items.controls.append(card)
 
@@ -138,8 +136,8 @@ def main(page: ft.Page):
     def handle_logout(e):
         session.logout()
         page.go("/")
-
-    # ✅ Custom Sidebar Overlay
+        
+    # Custom Sidebar Overlay
     def toggle_nav(e):
         nonlocal sidebar_open
         sidebar_open = not sidebar_open
@@ -152,7 +150,7 @@ def main(page: ft.Page):
         sidebar_overlay.visible = False
         page.update()
 
-    # ✅ Sidebar Content (170px width)
+    # Sidebar Content (170px width)
     sidebar_content = ft.Container(
         content=ft.Column(
             [
@@ -230,14 +228,13 @@ def main(page: ft.Page):
             ],
             spacing=5,
         ),
-        width=170,  # ✅ Reduced width (180px → 170px)
+        width=170, 
         height=700,
         bgcolor="#1a1a1a",
         border=ft.border.only(right=ft.BorderSide(1, "#E50914")),
         padding=ft.padding.only(top=5),
     )
 
-    # ✅ Sidebar Overlay (positioned relative to 400px container)
     sidebar_overlay = ft.Stack(
         [
             # Semi-transparent backdrop
@@ -247,7 +244,7 @@ def main(page: ft.Page):
                     width=400,
                     height=700,
                 ),
-                on_tap=close_nav,  # ✅ Close when clicking outside
+                on_tap=close_nav,
             ),
             # Sidebar positioned at left
             ft.Container(
@@ -261,7 +258,6 @@ def main(page: ft.Page):
         visible=False,  # Initially hidden
     )
 
-    # ✅ Fixed Header bar with proper structure
     search_input = ft.TextField(
         hint_text="Search anime...",
         expand=True,
@@ -284,7 +280,7 @@ def main(page: ft.Page):
                 ],
                 alignment="spaceBetween",
             ),
-            ft.Divider(color="#E50914", height=1),  # ✅ Divider inside Column
+            ft.Divider(color="#E50914", height=1), 
         ],
         spacing=10,
         width=400, 
@@ -329,34 +325,32 @@ def main(page: ft.Page):
         spacing=10,
         run_spacing=10,
         padding=ft.padding.symmetric(horizontal=10, vertical=0),
-        width=400,  # ✅ Fixed width
+        width=400,  
         expand=False,
     )
 
     update_anime_list(selected_cat=selected_category)
 
-    # ✅ Main layout with sidebar overlay
     main_content = ft.Column(
         [
-            header,  # ✅ Header with divider inside
+            header, 
             ft.Container(
                 category_grid, 
                 margin=ft.margin.only(top=10, bottom=2),
                 width=400,
             ),
-            anime_items,  # ✅ Fixed 2-column grid
+            anime_items,  
         ],
-        width=400,  # ✅ Main container fixed width
+        width=400, 
         spacing=0,
         scroll="auto",
     )
 
-    # ✅ Stack: Main content + Sidebar overlay
     page.add(
         ft.Stack(
             [
                 main_content,
-                sidebar_overlay,  # ✅ Sidebar on top
+                sidebar_overlay, 
             ],
             width=400,
             height=700,

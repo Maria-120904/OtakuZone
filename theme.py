@@ -1,6 +1,6 @@
 import flet as ft
 
-# 🎨 OtakuZone Global Theme
+#OtakuZone Global Theme
 def set_theme(page: ft.Page):
     page.theme_mode = "dark"  # or "light"
     page.bgcolor = "#0f1115"
@@ -9,7 +9,7 @@ def set_theme(page: ft.Page):
     page.padding = 20
 
 
-# 🟥 Reusable primary button (Netflix style)
+# Reusable primary button (Netflix style)
 def primary_button(label, on_click=None, width=300):
     return ft.ElevatedButton(
         text=label,
@@ -25,21 +25,27 @@ def primary_button(label, on_click=None, width=300):
     )
 
 
-# ⌨️ Input field with consistent border and radius
-def input_field(label, password=False, width=300):
+# ⌨Input field with consistent border and radius
+def input_field(label, password=False, width=300, height=None, content_padding=None, multiline=False, max_lines=1, min_lines=None, expand=False):
     return ft.TextField(
         label=label,
-        width=width,
         password=password,
-        can_reveal_password=password,
+        width=width,
+        height=height,
+        border_radius=8,
         border_color="#E50914",
-        border_radius=12,
-        text_style=ft.TextStyle(size=14, color="white"),
-        cursor_color="#E50914",
+        bgcolor="#181A20",
+        color="white",
+        can_reveal_password=password,
+        content_padding=content_padding,
+        multiline=multiline,
+        max_lines=max_lines,
+        min_lines=min_lines,
+        expand=expand,
     )
 
 
-# 🎞️ Anime card used in home/favorites view
+# Anime card used in home/favorites view
 def anime_card(title, genre, image, on_click=None):
     return ft.Container(
         content=ft.Column(

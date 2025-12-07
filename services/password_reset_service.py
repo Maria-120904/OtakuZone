@@ -2,8 +2,11 @@ import sqlite3
 from datetime import datetime, timedelta
 import bcrypt
 from services.email_service import generate_reset_code, send_reset_code_email
+import os
+from dotenv import load_dotenv
 
-DB_PATH = "database/otakuzone.db"
+load_dotenv()
+DB_PATH = os.getenv("DB_PATH", "database/otakuzone.db")
 
 
 def create_reset_codes_table():

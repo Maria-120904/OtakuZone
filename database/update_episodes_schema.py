@@ -1,7 +1,9 @@
 import sqlite3
 import os
+from dotenv import load_dotenv
 
-DB_PATH = "database/otakuzone.db"
+load_dotenv()
+DB_PATH = os.getenv("DB_PATH", "database/otakuzone.db")
 
 def update_schema():
     conn = sqlite3.connect(DB_PATH)
@@ -27,7 +29,7 @@ def update_schema():
     
     conn.commit()
     conn.close()
-    print("✅ Episodes table created successfully!")
+    print("Episodes table created successfully!")
 
 if __name__ == "__main__":
     update_schema()

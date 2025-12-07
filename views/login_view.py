@@ -139,7 +139,7 @@ def main(page: ft.Page):
                 message_text.color = "green"
                 page.update()
                 
-                # ✅ NEW: Resize window based on role
+                # NEW: Resize window based on role
                 import time
                 time.sleep(1)
                 if role == "admin":
@@ -152,7 +152,7 @@ def main(page: ft.Page):
         
         threading.Thread(target=google_auth_thread, daemon=True).start()
     
-    # ✅ NEW: Lockout timer in alert dialog
+    # NEW: Lockout timer in alert dialog
     def start_lockout_timer(email, total_seconds):
         # Disable all inputs and buttons
         signin_button.disabled = True
@@ -181,9 +181,9 @@ def main(page: ft.Page):
         
         cancel_button = ft.ElevatedButton(
             "OK",
-            bgcolor=ft.Colors.GREY_100,  # ✅ Grey when timer is counting
-            color="black",  # ✅ Black text on grey background
-            disabled=True,  # Disabled until timer finishes
+            bgcolor=ft.Colors.GREY_100,
+            color="black", 
+            disabled=True, 
             on_click=None
         )
         
@@ -249,7 +249,7 @@ def main(page: ft.Page):
                     status_message.color = "green"
                     cancel_button.disabled = False
                     
-                    # ✅ Change button color to red when enabled
+                    # Change button color to red when enabled
                     cancel_button.bgcolor = "#E50914"
                     cancel_button.color = "white"
                     
@@ -322,11 +322,11 @@ def main(page: ft.Page):
                         message_text.color = "red"
                         page.update()
                 else:
-                    # ✅ NEW: No 2FA - direct login with window resize
+                    # NEW: No 2FA - direct login with window resize
                     session.login(user[0], user[5], user[3])
                     
                     if user[5] == "admin":
-                        # ✅ Maximize window for admin
+                        # Maximize window for admin
                         page.window_maximized = True
                         page.window_resizable = True
                         page.update()
@@ -344,7 +344,7 @@ def main(page: ft.Page):
                     message_text.value = f"Incorrect password. {remaining} attempt(s) remaining."
                     message_text.color = "orange"
                 else:
-                    # ✅ Account locked - show dialog
+                    # Account locked - show dialog
                     message_text.value = ""
                     page.update()
                     start_lockout_timer(email, 120)
@@ -358,7 +358,7 @@ def main(page: ft.Page):
                 message_text.value = f"Invalid credentials. {remaining} attempt(s) remaining."
                 message_text.color = "orange"
             else:
-                # ✅ Account locked - show dialog
+                # Account locked - show dialog
                 message_text.value = ""
                 page.update()
                 start_lockout_timer(email, 120)
@@ -385,7 +385,7 @@ def main(page: ft.Page):
     
     email_input.on_blur = on_email_blur
 
-    # ✅ Logo and brand image
+    # Logo and brand image
     logo_image = ft.Image(
         src="assets/logo/logo.png",
         width=120,
@@ -393,7 +393,7 @@ def main(page: ft.Page):
         fit=ft.ImageFit.CONTAIN,
     )
 
-    # ✅ Sign In button + Forgot Password aligned
+    # Sign In button + Forgot Password aligned
     signin_and_forgot_container = ft.Column(
         [
             signin_button,

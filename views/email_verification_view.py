@@ -79,7 +79,7 @@ def main(page: ft.Page, email, name):
             return
 
         # Show verifying message
-        message_text.value = "🔄 Verifying code and creating account..."
+        message_text.value = "Verifying code and creating account..."
         message_text.color = "blue"
         page.update()
 
@@ -87,7 +87,7 @@ def main(page: ft.Page, email, name):
         success, msg = verify_code_and_create_account(email, code)
 
         if success:
-            message_text.value = f"✅ {msg} Redirecting to login..."
+            message_text.value = f"{msg} Redirecting to login..."
             message_text.color = "green"
             page.update()
 
@@ -95,13 +95,13 @@ def main(page: ft.Page, email, name):
             time.sleep(2)
             page.go("/login")
         else:
-            message_text.value = f"❌ {msg}"
+            message_text.value = f"{msg}"
             message_text.color = "red"
             page.update()
 
     # Resend Code Handler
     def handle_resend_code(e):
-        message_text.value = "📧 Resending code..."
+        message_text.value = "Resending code..."
         message_text.color = "blue"
         page.update()
 
@@ -109,10 +109,10 @@ def main(page: ft.Page, email, name):
         success, msg = resend_verification_code(email)
 
         if success:
-            message_text.value = f"✅ {msg}"
+            message_text.value = f"{msg}"
             message_text.color = "green"
         else:
-            message_text.value = f"❌ {msg}"
+            message_text.value = f"{msg}"
             message_text.color = "red"
 
         page.update()

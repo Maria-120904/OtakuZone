@@ -1,8 +1,9 @@
 import flet as ft
 from theme import set_theme
 from services.session_manager import SessionManager
-from views.admin_anime_mgmt import anime_management_view  # ✅ Changed from relative to absolute import
-from views.admin_user_mgmt import user_management_view  # ✅ Changed from relative to absolute import
+from views.admin_anime_mgmt import anime_management_view 
+from views.admin_user_mgmt import user_management_view
+from views.admin_analytics_view import analytics_dashboard_view 
 
 def main(page: ft.Page):
     set_theme(page)
@@ -18,7 +19,7 @@ def main(page: ft.Page):
     # Clear existing controls before rendering admin view
     page.controls.clear()
 
-    tab_index = 0  # 0: Anime, 1: User
+    tab_index = 0 
 
     content_area = ft.Container(expand=True, padding=ft.padding.symmetric(horizontal=20))
 
@@ -30,11 +31,29 @@ def main(page: ft.Page):
     def update_content():
         if tab_index == 0:
             content_area.content = anime_management_view(page)
-        else:
+        elif tab_index == 1:
             content_area.content = user_management_view(page)
+        elif tab_index == 2: 
+            content_area.content = analytics_dashboard_view(page)
         page.update()
 
     def handle_logout(e):
+        # FORCE window to un-maximize and resize to mobile BEFORE logout
+        page.window.maximized = False
+        page.window.full_screen = False
+        page.update()
+        
+        # Small delay to ensure window state changes
+        import time
+        time.sleep(0.1)
+        
+        # Resize to mobile
+        page.window.width = 400
+        page.window.height = 700
+        page.window.resizable = True  # Allow manual resizing
+        page.update()
+        
+        # Then logout and navigate
         session.logout()
         page.go("/login")
 
@@ -54,14 +73,13 @@ def main(page: ft.Page):
         expand=True,
         height=60,
     )
-
-    # Nav bar (tabs) below header, left-aligned
     nav_bar = ft.Tabs(
         selected_index=tab_index,
         on_change=switch_tab,
         tabs=[
             ft.Tab(text="Anime Management"),
             ft.Tab(text="User Management"),
+            ft.Tab(text="Analytics Management"),
         ],
         indicator_color="#E50914",
         label_color="white",

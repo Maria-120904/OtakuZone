@@ -85,7 +85,7 @@ def main(page: ft.Page, anime_id=None):
 
     fav_state = is_favorite(user_id, anime_id)
     
-    # ✅ Track current playing episode
+    # Track current playing episode
     current_episode = [None]
     episode_boxes = []
 
@@ -130,7 +130,7 @@ def main(page: ft.Page, anime_id=None):
         width=400,
     )
 
-    # ✅ Media container (image or video)
+    # Media container (image or video)
     if image_path and os.path.exists(image_path):
         initial_image = ft.Image(
             src=image_path,
@@ -153,7 +153,7 @@ def main(page: ft.Page, anime_id=None):
         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
     )
 
-    # ✅ Episode title display (below video, above icons)
+    # Episode title display (below video, above icons)
     episode_title_display = ft.Container(
         content=ft.Text(
             "",  # Empty by default
@@ -256,14 +256,14 @@ def main(page: ft.Page, anime_id=None):
             page.update()
             return
         
-        # ✅ Update current episode
+        # Update current episode
         current_episode[0] = episode_number
         
-        # ✅ Update episode title display
+        # Update episode title display
         episode_title_display.content.value = f"Episode {episode_number}: {ep_title or 'Untitled'}"
         episode_title_display.visible = True
         
-        # ✅ Update all episode buttons (only current one is red)
+        # Update all episode buttons (only current one is red)
         for i, box in enumerate(episode_boxes):
             ep_num = i + 1
             if ep_num == episode_number:
@@ -284,17 +284,15 @@ def main(page: ft.Page, anime_id=None):
                     padding=ft.padding.symmetric(horizontal=0, vertical=0),
                 )
         
-        # ✅ Create video player WITHOUT auto-play next
+        # Create video player WITHOUT auto-play next
         video_player = ft.Video(
             playlist=[ft.VideoMedia(video_path)],
             width=page.window_width,
             height=240,
             show_controls=True,
             autoplay=True,
-            # ✅ REMOVED: on_completed (no auto-play)
         )
         
-        # ✅ Replace image with video
         media_container.content = video_player
         page.update()
 
@@ -302,11 +300,9 @@ def main(page: ft.Page, anime_id=None):
         """Handle episode button click"""
         play_episode(episode_number)
 
-    # ✅ Create episode buttons with PROPER lambda capture
     for i in range(episode_count):
         ep_num = i + 1
         
-        # ✅ FIX: Create button with immediate value binding
         btn = ft.ElevatedButton(
             content=ft.Text(str(ep_num), color="white", size=13, weight="bold"),
             style=ft.ButtonStyle(
@@ -319,10 +315,10 @@ def main(page: ft.Page, anime_id=None):
             ),
             width=36,
             height=36,
-            data=ep_num,  # ✅ Store episode number in data
+            data=ep_num,  # Store episode number in data
         )
         
-        # ✅ Use data attribute instead of closure
+        # Use data attribute instead of closure
         btn.on_click = lambda e: handle_episode_click(e.control.data)
         
         episode_boxes.append(btn)
@@ -360,8 +356,8 @@ def main(page: ft.Page, anime_id=None):
     layout = ft.Column(
         [
             header,
-            media_container,  # ✅ Image or video
-            episode_title_display,  # ✅ Episode title (below video, above icons)
+            media_container,  # Image or video
+            episode_title_display,  # Episode title (below video, above icons)
             ft.Container(actions, alignment=ft.alignment.center, padding=0, width=400),
             ft.Container(info, alignment=ft.alignment.center, padding=10, width=400),
         ],

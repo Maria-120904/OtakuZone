@@ -115,13 +115,12 @@ def episode_management_view(page: ft.Page, anime_id: int):
         """Refresh the episodes list"""
         episodes_list.controls.clear()
         
-        # ✅ Table header - REMOVED "Video" column
         header = ft.Row(
             [
                 ft.Text("Ep#", width=60, weight="bold", color="white"),
-                ft.Text("Title", width=250, weight="bold", color="white"),  # ✅ Increased width from 200 to 250
+                ft.Text("Title", width=250, weight="bold", color="white"),  
                 ft.Text("Duration", width=100, weight="bold", color="white"),
-                ft.Text("Actions", width=120, weight="bold", color="white"),  # ✅ Removed "Video" column
+                ft.Text("Actions", width=120, weight="bold", color="white"),  
             ],
             alignment="start",
         )
@@ -150,14 +149,13 @@ def episode_management_view(page: ft.Page, anime_id: int):
             for ep in episodes:
                 ep_id, ep_num, ep_title, video_path, duration, upload_date = ep
                 
-                # ✅ REMOVED: video_status line
                 
                 row = ft.Row(
                     [
                         ft.Text(str(ep_num), width=60, color="white", weight="bold"),
-                        ft.Text(ep_title or "Untitled", width=250, color="#b3b3b3"),  # ✅ Increased width from 200 to 250
+                        ft.Text(ep_title or "Untitled", width=250, color="#b3b3b3"),
                         ft.Text(duration or "N/A", width=100, color="#E50914"),
-                        # ✅ REMOVED: ft.Text(video_status, width=100, color="white"),
+                    
                         ft.Row(
                             [
                                 ft.IconButton(
@@ -319,7 +317,7 @@ def episode_management_view(page: ft.Page, anime_id: int):
             ep_duration = duration_field.value.strip()
             
             if not ep_number or not ep_title or not selected_video[0]:
-                form_message.value = "❌ Episode number, title, and video are required"
+                form_message.value = "Episode number, title, and video are required"
                 form_message.color = "red"
                 page.update()
                 return
@@ -327,14 +325,14 @@ def episode_management_view(page: ft.Page, anime_id: int):
             try:
                 ep_number = int(ep_number)
             except:
-                form_message.value = "❌ Episode number must be a number"
+                form_message.value = "Episode number must be a number"
                 form_message.color = "red"
                 page.update()
                 return
             
             # Check if episode exists (only when adding)
             if not is_edit_mode and episode_exists(anime_id, ep_number):
-                form_message.value = f"❌ Episode {ep_number} already exists"
+                form_message.value = f"Episode {ep_number} already exists"
                 form_message.color = "red"
                 page.update()
                 return
@@ -360,7 +358,7 @@ def episode_management_view(page: ft.Page, anime_id: int):
                 try:
                     shutil.copy(selected_video[0], final_video_path)
                 except Exception as ex:
-                    form_message.value = f"❌ Failed to save video: {ex}"
+                    form_message.value = f"Failed to save video: {ex}"
                     form_message.color = "red"
                     page.update()
                     return
@@ -422,8 +420,7 @@ def episode_management_view(page: ft.Page, anime_id: int):
     def go_back(e):
         """Navigate back to anime management"""
         page.go("/admin")
-    
-    # ✅ Header matching admin dashboard style
+        
     header = ft.Row(
         [
             ft.IconButton(
@@ -440,7 +437,6 @@ def episode_management_view(page: ft.Page, anime_id: int):
         height=60,
     )
     
-    # ✅ Title and Add Episode button in one row
     title_and_add_row = ft.Row(
         [
             ft.Text("Manage Videos", size=16, weight="bold", color="white"),
@@ -451,7 +447,6 @@ def episode_management_view(page: ft.Page, anime_id: int):
         vertical_alignment="center",
     )
     
-    # ✅ Layout with header wrapped in container
     layout = ft.Column(
         [
             ft.Container(

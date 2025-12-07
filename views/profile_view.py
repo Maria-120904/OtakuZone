@@ -530,9 +530,9 @@ def main(page: ft.Page):
                             width=360,
                         ),
                         bio_field,
-                        password_button,  # Plain clickable text, left-aligned
+                        password_button, 
                         ft.Container(height=8),
-                        twofa_container,  # 2FA row immediately below, centered, padded
+                        twofa_container,  
                     ],
                     spacing=10,
                 ),
@@ -542,7 +542,6 @@ def main(page: ft.Page):
             ft.Container(change_password_container, padding=ft.padding.symmetric(horizontal=20), width=400),
             ft.Container(set_password_container, padding=ft.padding.symmetric(horizontal=20), width=400),
             ft.Container(password_message, padding=ft.padding.symmetric(horizontal=20), width=400),
-            # Remove extra space above Save Profile button
             ft.Container(primary_button("Save Profile", handle_save, width=360), padding=ft.padding.symmetric(horizontal=20, vertical=4), width=400),
         ],
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
