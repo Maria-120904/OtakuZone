@@ -128,8 +128,15 @@ pip install -r requirements.txt
 4. Initialize the database:  
 ```bash
 python init_db.py
-```  
-5. Run the application:  
+```
+5. Google OAuth Setup:
+```bash
+- Obtain your credentials.json from the Google Cloud Console.
+- Place the credentials.json file in the project root directory (Pojangmacha/).
+- (Optional) If your app generates a token.json after the first Google login, it will be saved in the same directory.
+- Do not commit these files to version control.
+```    
+6. Run the application:  
 ```bash
 python main.py
 ```  
@@ -183,3 +190,23 @@ As the team member responsible for testing and quality assurance, my main task w
 
 ## Acknowledgments  
 - Acknowledgments: Flet framework, SQLite, and open-source inspirations  
+
+
+## APP
+![alt text](<assets/app/Screenshot 2025-12-09 213701.png>)
+![alt text](<assets/app/Screenshot 2025-12-09 213734.png>)
+![alt text](<assets/app/Screenshot 2025-12-09 213817.png>)
+![alt text](<assets/app/Screenshot 2025-12-09 213831.png>)
+![alt text](<assets/app/Screenshot 2025-12-09 213857.png>)
+![alt text](<assets/app/Screenshot 2025-12-09 213916.png>)
+![alt text](<assets/app/Screenshot 2025-12-09 213929.png>)
+![alt text](<assets/app/Screenshot 2025-12-09 213954.png>)
+![alt text](<assets/app/Screenshot 2025-12-09 214002.png>)
+![alt text](<assets/app/Screenshot 2025-12-09 214047.png>)
+![alt text](<assets/app/Screenshot 2025-12-09 214039.png>)
+![alt text](<assets/app/Screenshot 2025-12-09 214058.png>)
+![alt text](<assets/app/Screenshot 2025-12-09 214105.png>)
+
+
+
+
